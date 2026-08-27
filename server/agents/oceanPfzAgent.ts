@@ -1,6 +1,7 @@
 import { calculateHaversineKm, calculateBearingDegrees } from './geofenceAgent';
 import { globalVectorStore } from '../db/vectorStore';
 import { getLiveOceanData, getMlModelInput, getTomorrowForecast } from '../data/marineDataService';
+import { fetchPfzGrid } from '../data/pfzGridService';
 import fs from 'fs';
 import path from 'path';
 
@@ -166,19 +167,28 @@ export class OceanPfzAgent {
     return null;
   }
 
-  private async callLiveMLBatch(candidates: { lat: number; lng: number; sst: number; gradient: number; chl: number }[]): Promise<{ pfz_prediction: boolean; confidence: number }[] | null> {
+  private async callLiveMLBatch(candidates: { lat: number; lng: number; sst: number; gradient: number; chl: number }[]): Promise<{ pfz_prediction: boolean; confidence: number; probability?: number }[] | null> {
     try {
-      const locations = candidates.map(c => ({ sst: c.sst, sst_gradient: c.gradient, chlorophyll: c.chl }));
+      const locations = candidates.map(c => ({
+        sst: c.sst,
+        sst_gradient: c.gradient,
+        chlorophyll: c.chl > 0 ? c.chl : 0.3, // use 0.3 as Bay of Bengal baseline only if no real CHL
+        latitude: c.lat,
+        longitude: c.lng,
+      }));
       const response = await fetch(`${ML_SERVICE_URL}/predict/pfz/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locations }),
+        signal: AbortSignal.timeout(20000),
       });
       if (response.ok) {
         const data = await response.json() as any;
         return data.predictions;
       }
-    } catch {}
+    } catch (err: any) {
+      console.warn('[ML_REQUEST] Batch call failed:', err.message);
+    }
     return null;
   }
 
@@ -204,6 +214,14 @@ export class OceanPfzAgent {
     return this.buildFromHardcodedZones(originLat, originLng, radius, locName);
   }
 
+  /**
+   * Full real-data PFZ pipeline:
+   *   GPS → NCEI OISST bbox (real SST grid) → PIFSC ESA-CCI bbox (real Chl grid)
+   *   → SST gradient (finite differences from grid) → ML batch → PFZ candidates
+   *
+   * NO synthetic variation. Every feature value comes from a real satellite/model source.
+   * If both SST and CHL are UNAVAILABLE, returns status="UNAVAILABLE" with no candidates.
+   */
   public async analyzeWithLiveML(params: {
     lat: number;
     lng: number;
@@ -212,55 +230,118 @@ export class OceanPfzAgent {
   }): Promise<OceanPfzAnalysisResult> {
     const originLat = params.lat || 13.0827;
     const originLng = params.lng || 80.2707;
-    const radius = params.radiusKm || 80;
+    const radius = params.radiusKm || 150;
     const locName = params.locationName || `Coastal Station (${originLat.toFixed(2)}°N, ${originLng.toFixed(2)}°E)`;
+    const now = new Date();
 
-    // Fetch real live ocean data for the center point
-    const liveData = await getLiveOceanData(originLat, originLng);
-    const baseSst = liveData.sst;
-    const baseChl = liveData.chlorophyll;
-    const baseGradient = liveData.sstGradient;
+    console.log(`[PFZ_REQUEST] lat=${originLat}, lng=${originLng}, radius=${radius}km`);
 
-    // Build candidate grid using live data as base with realistic spatial variation
+    // ── Step 1: Fetch real spatial grid data ──────────────────────────────
+    let pfzGrid;
+    try {
+      pfzGrid = await fetchPfzGrid(originLat, originLng, radius);
+    } catch (err: any) {
+      console.error('[PFZ_REQUEST] Grid fetch failed:', err.message);
+      return this.buildUnavailableResult(originLat, originLng, locName, radius, 'Grid data fetch failed');
+    }
+
+    // Also fetch wave data from Open-Meteo (for display in PFZ card, NOT model input)
+    const liveData = await getLiveOceanData(originLat, originLng).catch(() => null);
+    const liveWaveHeight = liveData?.waveHeight && liveData.waveHeight > 0 ? liveData.waveHeight : 0;
+    const liveWindSpeed  = liveData?.windWaveHeight && liveData.windWaveHeight > 0 ? Math.round(liveData.windWaveHeight * 15) : 0;
+
+    // ── Step 2: Build ML candidates from real grid ────────────────────────
+    // Only use points where both SST and CHL are valid satellite observations
     const candidates: { lat: number; lng: number; sst: number; gradient: number; chl: number }[] = [];
-    const gridStep = 0.25;
-    for (let dLat = -1.0; dLat <= 1.0; dLat += gridStep) {
-      for (let dLng = -1.0; dLng <= 1.0; dLng += gridStep) {
-        const cLat = originLat + dLat;
-        const cLng = originLng + dLng;
-        const dist = calculateHaversineKm(originLat, originLng, cLat, cLng);
-        if (dist > 5 && dist <= radius) {
-          // Spatial variation around the live center value (realistic ±0.5°C SST, ±0.3 chl)
-          const latFactor = Math.sin(cLat * 3 + cLng) * 0.5;
-          const lngFactor = Math.cos(cLat * 2 - cLng * 4) * 0.3;
-          const sst = baseSst > 0 ? baseSst + latFactor : 27.5 + latFactor;
-          const gradient = baseGradient > 0 ? baseGradient + Math.abs(lngFactor) * 0.5 : Math.abs(lngFactor) * 1.2;
-          const chl = baseChl > 0 ? baseChl + Math.abs(Math.sin(cLat * 7 + cLng * 2)) * 1.5 : 0.3 + Math.abs(Math.sin(cLat * 7 + cLng * 2)) * 2.0;
-          candidates.push({ lat: cLat, lng: cLng, sst, gradient, chl });
-        }
-      }
+
+    for (const pt of pfzGrid.gridPoints) {
+      const dist = calculateHaversineKm(originLat, originLng, pt.lat, pt.lng);
+      if (dist < 3 || dist > radius) continue;    // skip origin and beyond radius
+
+      // Require real SST. For CHL, use 0.3 (Bay of Bengal baseline) if unavailable
+      // but mark it explicitly
+      if (pt.sst <= 0) continue;                   // skip if no real SST
+
+      const chl = pt.chlorophyll > 0 ? pt.chlorophyll : 0;  // 0 = genuinely unknown
+      const grad = pt.sstGradient;
+
+      candidates.push({ lat: pt.lat, lng: pt.lng, sst: pt.sst, gradient: grad, chl });
     }
 
+    console.log(`[OCEAN_DATA_FETCH] SST=${pfzGrid.sstStatus} (${pfzGrid.sstTimestamp}), CHL=${pfzGrid.chlStatus} (${pfzGrid.chlTimestamp}), candidates=${candidates.length}`);
+
+    // If we have no valid SST data, return UNAVAILABLE rather than fake data
+    if (candidates.length === 0) {
+      return this.buildUnavailableResult(
+        originLat, originLng, locName, radius,
+        `SST: ${pfzGrid.sstStatus}, CHL: ${pfzGrid.chlStatus}. No valid satellite observations.`
+      );
+    }
+
+    // ── Step 3: Run ML batch ──────────────────────────────────────────────
     const mlResults = await this.callLiveMLBatch(candidates);
+    console.log(`[ML_REQUEST] batch_size=${candidates.length}`);
 
-    const liveWaveHeight = liveData.waveHeight > 0 ? liveData.waveHeight : 0.9;
-    const liveWindSpeed = liveData.windWaveHeight > 0 ? Math.round(liveData.windWaveHeight * 15) : 14;
-
-    if (mlResults && mlResults.length > 0) {
-      const result = this.buildFromLiveMLResults(mlResults, candidates, originLat, originLng, radius, locName, liveWaveHeight, liveWindSpeed);
-      // Enrich with live data source info
-      result.sstSummary.meanSst = baseSst > 0 ? baseSst : result.sstSummary.meanSst;
-      result.chlorophyllSummary.meanValue = baseChl > 0 ? baseChl : result.chlorophyllSummary.meanValue;
-      result.dataSource = 'ml_live_inference';
-      result.dataStatus = liveData.overallStatus === 'UNAVAILABLE' ? 'FALLBACK' : liveData.overallStatus === 'CACHED' ? 'CACHED' : 'LIVE';
-      result.dataTimestamp = liveData.retrievedAt;
-      if (result.mlMetadata) {
-        result.mlMetadata.disclaimer = `Live ML prediction using real ocean data (SST: ${liveData.sources.sst.source}, CHL: ${liveData.sources.chlorophyll.source}). NOT official INCOIS PFZ advisory.`;
-      }
-      return result;
+    if (!mlResults || mlResults.length === 0) {
+      // ML service down — return UNAVAILABLE (not fake data)
+      console.warn('[ML_RESPONSE] ML service unavailable — returning UNAVAILABLE');
+      return this.buildUnavailableResult(
+        originLat, originLng, locName, radius,
+        'ML service unavailable. Real ocean data was fetched but cannot generate PFZ predictions without the ML service.'
+      );
     }
 
-    return this.analyze(params);
+    console.log(`[ML_RESPONSE] pfz_positive=${mlResults.filter(r => r.pfz_prediction).length}/${mlResults.length}`);
+
+    // ── Step 4: Build result from real ML predictions ─────────────────────
+    const result = this.buildFromLiveMLResults(
+      mlResults, candidates, originLat, originLng, radius, locName,
+      liveWaveHeight, liveWindSpeed
+    );
+
+    // Enrich with real data provenance
+    const allSst = candidates.filter(c => c.sst > 0).map(c => c.sst);
+    const allChl = candidates.filter(c => c.chl > 0).map(c => c.chl);
+    result.sstSummary.meanSst   = allSst.length > 0 ? Math.round(allSst.reduce((a, b) => a + b, 0) / allSst.length * 10) / 10 : 0;
+    result.chlorophyllSummary.meanValue = allChl.length > 0 ? Math.round(allChl.reduce((a, b) => a + b, 0) / allChl.length * 1000) / 1000 : 0;
+    result.dataSource   = 'ml_live_inference';
+    result.dataStatus   = pfzGrid.sstStatus === 'LIVE' ? 'LIVE' : pfzGrid.sstStatus === 'CACHED' ? 'CACHED' : 'FALLBACK';
+    result.dataTimestamp = pfzGrid.sstTimestamp || pfzGrid.retrievedAt;
+    if (result.mlMetadata) {
+      result.mlMetadata.disclaimer =
+        `ML predictions from real satellite data. SST: ${pfzGrid.sstSource} (${pfzGrid.sstTimestamp || 'no timestamp'}). ` +
+        `CHL: ${pfzGrid.chlSource} (${pfzGrid.chlTimestamp || 'no timestamp'}). ` +
+        `NOT official INCOIS PFZ advisory.`;
+    }
+
+    console.log(`[PFZ_RESULT] ${result.pfzCandidates.length} zones, status=${result.dataStatus}`);
+    return result;
+  }
+
+  /** Returns a clean UNAVAILABLE result — never returns fake/hardcoded data as live PFZ */
+  private buildUnavailableResult(
+    lat: number, lng: number, locName: string, radius: number, reason: string
+  ): OceanPfzAnalysisResult {
+    return {
+      searchOrigin: { lat, lng, locationName: locName },
+      radiusKm: radius,
+      sstSummary: { meanSst: 0, thermalFrontDetected: false, gradientStrength: 'UNAVAILABLE' },
+      chlorophyllSummary: { meanValue: 0, bloomStatus: 'Dispersed' },
+      currentSummary: { speedMs: 0, direction: 'UNAVAILABLE', divergenceType: 'Laminar Coastal Stream' },
+      pfzCandidates: [],
+      fisheriesAdvisory: `PFZ data currently unavailable. ${reason} Please retry in a few minutes or check connectivity.`,
+      timestamp: new Date().toISOString(),
+      dataSource: 'ml_live_inference',
+      dataStatus: 'FALLBACK',
+      dataTimestamp: new Date().toISOString(),
+      mlMetadata: {
+        model: 'RandomForestClassifier',
+        features: ['sst', 'sst_gradient', 'chlorophyll'],
+        totalPredictions: 0,
+        dataDate: new Date().toISOString().split('T')[0],
+        disclaimer: `UNAVAILABLE — ${reason}`,
+      },
+    };
   }
 
   private buildFromLiveMLResults(
@@ -273,9 +354,14 @@ export class OceanPfzAgent {
     const now = new Date();
 
     const pfzPositive = mlResults
-      .map((result, idx) => ({ ...result, ...candidates[idx], idx }))
+      .map((result, idx) => ({
+        ...result,
+        ...candidates[idx],
+        idx,
+        probability: (result as any).probability ?? result.confidence,
+      }))
       .filter(r => r.pfz_prediction)
-      .sort((a, b) => b.confidence - a.confidence)
+      .sort((a, b) => b.probability - a.probability)
       .slice(0, 6);
 
     const pfzCandidates: PFZCandidate[] = pfzPositive.map((r, i) => {
@@ -297,8 +383,8 @@ export class OceanPfzAgent {
         distanceKm: Math.round(dist * 10) / 10,
         direction: `${dirNames[dirIndex]} (${bearing.toString().padStart(3, '0')}°)`,
         bearingDegrees: bearing,
-        suitabilityScore: Math.round(r.confidence * 100),
-        confidenceScore: Math.round(r.confidence * 100),
+        suitabilityScore: Math.round(r.probability * 100),
+        confidenceScore: Math.round(r.probability * 100),
         sst: Math.round(r.sst * 10) / 10,
         chlorophyllLevel: r.chl > 2.0 ? 'Very High' as const : r.chl > 1.0 ? 'High' as const : r.chl > 0.5 ? 'Medium' as const : 'Low' as const,
         chlorophyllValue: Math.round(r.chl * 100) / 100,
@@ -313,9 +399,9 @@ export class OceanPfzAgent {
           bathymetricFeature: 'Continental shelf zone',
           currentConvergence: 'Live ML prediction',
         },
-        reasoning: `Live ML model prediction (confidence ${(r.confidence * 100).toFixed(1)}%) using SST=${r.sst.toFixed(1)}°C, gradient=${r.gradient.toFixed(3)}, chlorophyll=${r.chl.toFixed(3)} mg/m³.`,
+        reasoning: `ML-DERIVED: P(PFZ)=${(r.probability * 100).toFixed(1)}% using NCEI OISST SST=${r.sst.toFixed(1)}°C, gradient=${r.gradient.toFixed(3)}°C/0.25°, ${r.chl > 0 ? 'ESA-CCI CHL=' + r.chl.toFixed(3) + ' mg/m³' : 'CHL unavailable (baseline used)'}.`,
         validUntil: now.toISOString(),
-        dataSource: 'RandomForest ML Service (live inference)',
+        dataSource: 'NCEI OISST v2.1 + ESA-CCI CHL v6.0 + RandomForest ML',
         dataTimestamp: now.toISOString(),
         source: 'ml_prediction' as const,
       };

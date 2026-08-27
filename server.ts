@@ -191,21 +191,33 @@ app.post('/api/pfz/analyze', (req, res) => {
   res.json(result);
 });
 
-// 5b. ML PFZ PREDICTIONS ENDPOINT (GeoJSON fallback data)
+// 5b. LIVE ML PFZ ENDPOINT — real NCEI SST + ESA-CCI CHL + RandomForest
+app.get('/api/pfz/live', async (req, res) => {
+  const lat = parseFloat(req.query.lat as string) || 13.0827;
+  const lng = parseFloat(req.query.lng as string) || 80.2707;
+  const radius = parseFloat(req.query.radius as string) || 150;
+  try {
+    const result = await globalOceanPfzAgent.analyzeWithLiveML({ lat, lng, radiusKm: radius });
+    res.json(result);
+  } catch (err: any) {
+    console.error('[/api/pfz/live] error:', err.message);
+    res.status(503).json({
+      dataStatus: 'UNAVAILABLE',
+      error: 'Live PFZ pipeline failed',
+      message: err.message,
+    });
+  }
+});
+
+// 5c-historical. HISTORICAL GeoJSON — clearly labeled as 2020 data, NOT current
 app.get('/api/pfz', (req, res) => {
   const geojsonPath = path.join(process.cwd(), 'server', 'data', 'pfz_map_locations.geojson');
-
   try {
     if (!fs.existsSync(geojsonPath)) {
-      return res.status(404).json({
-        error: 'PFZ prediction data not available',
-        message: 'The ML model GeoJSON file has not been generated yet.',
-      });
+      return res.status(404).json({ error: 'Historical PFZ GeoJSON not found' });
     }
-
     const raw = fs.readFileSync(geojsonPath, 'utf-8');
     const geojson = JSON.parse(raw);
-
     const predictions = geojson.features.map((feature: any) => ({
       latitude: feature.geometry.coordinates[1],
       longitude: feature.geometry.coordinates[0],
@@ -215,17 +227,16 @@ app.get('/api/pfz', (req, res) => {
       pfz_probability: feature.properties.pfz_probability,
       date: feature.properties.date,
     }));
-
     res.json({
-      type: 'ml_prediction',
-      dataStatus: 'CACHED',
-      disclaimer: 'These are cached satellite-derived ML model predictions. NOT live data. NOT official INCOIS PFZ advisories.',
+      type: 'historical_ml_prediction',
+      dataStatus: 'HISTORICAL',
+      observationDate: '2020-01-01',
+      disclaimer: 'HISTORICAL DATA — January 2020. NOT today\'s conditions. NOT official INCOIS PFZ advisory. For reference and demo only.',
       total: predictions.length,
       predictions,
     });
   } catch (err: any) {
-    console.error('PFZ ML endpoint error:', err);
-    res.status(500).json({ error: 'Failed to load PFZ predictions', message: err?.message });
+    res.status(500).json({ error: 'Failed to load historical PFZ data', message: err?.message });
   }
 });
 

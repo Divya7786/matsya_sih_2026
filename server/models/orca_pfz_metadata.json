@@ -1,5 +1,6 @@
 {
   "model": "RandomForestClassifier",
+  "sklearn_version": "1.9.0",
   "n_estimators": 200,
   "max_depth": 12,
   "features": [
@@ -7,13 +8,29 @@
     "sst_gradient",
     "chlorophyll"
   ],
-  "training_samples": 3304,
-  "testing_samples": 826,
-  "total_samples": 4130,
-  "pfz_predictions": 211,
-  "data_date": "2020-01-01",
-  "sst_source": "NOAA OISST v2.1",
-  "chlorophyll_source": "NASA MODIS-Aqua L3",
+  "feature_order": "sst, sst_gradient, chlorophyll",
+  "classes": [
+    0,
+    1
+  ],
+  "class_meaning": {
+    "0": "NOT_PFZ",
+    "1": "PFZ"
+  },
+  "training_samples": 4800,
+  "testing_samples": 1200,
+  "total_samples": 6000,
+  "pfz_predictions": 1736,
+  "pfz_ratio_percent": 28.9,
+  "test_accuracy": 0.9992,
+  "test_precision": 1.0,
+  "test_recall": 0.9971,
+  "test_f1": 0.9986,
+  "data_date": "2026-08-28",
+  "sst_source": "Synthetic (Indian Ocean distribution \u2014 Bay of Bengal, Arabian Sea, Indian Ocean)",
+  "chlorophyll_source": "Synthetic (exponential distribution, Indian Ocean baseline)",
   "label_type": "pseudo-label",
-  "warning": "Not official INCOIS PFZ advisory data"
+  "label_rule": "PFZ=1 if SST in [26,30.5]\u00b0C AND sst_gradient >= 0.2 AND chlorophyll >= 0.4",
+  "warning": "PSEUDO-LABEL model. NOT official INCOIS PFZ advisory. For demonstration and research only.",
+  "disclaimer": "Labels derived from oceanographic rules, not verified catch data or official INCOIS advisories."
 }
