@@ -6,203 +6,259 @@ import {
   Maximize2,
   Minimize2,
   Sparkles,
-  Crosshair,
   MapPin,
   Loader2,
-  AlertTriangle,
   Fish,
   Navigation,
   Wind,
   Thermometer,
   Droplets,
-  ShieldCheck,
   X,
   ZoomIn,
   ZoomOut,
   Waves,
   Compass,
+  Play,
+  Pause,
+  Activity,
+  FlaskConical,
+  Eye,
+  Atom,
   Layers,
+  Mic,
+  AlertTriangle,
 } from 'lucide-react';
 import { OceanVariable, MarineLocationData } from '../types/marine';
-import { fetchMarineLocation, fetchMLPfzPredictions, runAgentOrchestration, checkGeofenceStatus } from '../services/api';
+import { fetchMarineLocation, fetchMLPfzPredictions, runAgentOrchestration } from '../services/api';
 import type { MLPfzPrediction } from '../services/api';
 
 // ═══════════════════════════════════════════════════════════
-// OCEAN DATA LAYER DEFINITIONS
+// LAYER DEFINITIONS
 // ═══════════════════════════════════════════════════════════
 
-type OceanLayerId = 'sst' | 'chlorophyll' | 'salinity' | 'waveHeight' | 'wind' | 'current' | 'bathymetry' | 'pfz';
+type OceanLayerId =
+  | 'sst'
+  | 'chlorophyll'
+  | 'salinity'
+  | 'oxygen'
+  | 'current'
+  | 'ssh'
+  | 'ph'
+  | 'turbidity'
+  | 'nitrate'
+  | 'pfz';
 
 interface OceanLayerDef {
   id: OceanLayerId;
   label: string;
   shortLabel: string;
   unit: string;
+  sublabel: string;
+  source: string;
   icon: React.ReactNode;
-  dataField: string;
   colorStops: { value: number; color: [number, number, number] }[];
   legendLabels: string[];
-  apiAvailable: boolean;
-  dataSource: string;
+  isSimulated: boolean;
 }
 
 const OCEAN_LAYERS: OceanLayerDef[] = [
   {
     id: 'sst',
-    label: 'Sea Surface Temperature',
+    label: 'Sea Surface Temperature (SST)',
     shortLabel: 'SST',
     unit: '°C',
-    icon: <Thermometer className="w-3.5 h-3.5" />,
-    dataField: 'temperature',
+    sublabel: 'Surface ocean temperature',
+    source: 'Open-Meteo Marine / NCEI OISST v2.1',
+    icon: <Thermometer className="w-4 h-4" />,
+    isSimulated: false,
     colorStops: [
-      { value: 0, color: [10, 20, 80] },
-      { value: 10, color: [20, 60, 180] },
-      { value: 18, color: [40, 180, 180] },
-      { value: 24, color: [80, 220, 80] },
-      { value: 28, color: [240, 200, 20] },
-      { value: 32, color: [220, 40, 20] },
+      { value: 0,  color: [28,  10, 110] },
+      { value: 4,  color: [20,  40, 180] },
+      { value: 8,  color: [20, 100, 200] },
+      { value: 12, color: [20, 160, 160] },
+      { value: 16, color: [60, 200,  80] },
+      { value: 20, color: [180, 220, 20] },
+      { value: 24, color: [240, 180, 20] },
+      { value: 28, color: [220,  80, 20] },
+      { value: 32, color: [180,  10, 10] },
     ],
-    legendLabels: ['0°C', '10°C', '18°C', '24°C', '28°C', '32°C'],
-    apiAvailable: true,
-    dataSource: 'Open-Meteo Marine API / NCEI OISST v2.1 (ECMWF SST)',
+    legendLabels: ['32', '28', '24', '20', '16', '12', '8', '4', '0'],
   },
   {
     id: 'chlorophyll',
     label: 'Chlorophyll-a Concentration',
     shortLabel: 'Chl-a',
     unit: 'mg/m³',
-    icon: <Droplets className="w-3.5 h-3.5" />,
-    dataField: 'chlorophyll',
+    sublabel: 'Phytoplankton biomass',
+    source: 'PIFSC ESA-CCI Chl-a / INCOIS',
+    icon: <Droplets className="w-4 h-4 text-emerald-400" />,
+    isSimulated: false,
     colorStops: [
-      { value: 0, color: [5, 5, 40] },
-      { value: 0.5, color: [10, 30, 120] },
+      { value: 0,   color: [5,   5,  40] },
+      { value: 0.5, color: [10,  30, 120] },
       { value: 1.0, color: [20, 100, 100] },
-      { value: 2.0, color: [40, 180, 40] },
-      { value: 3.0, color: [200, 220, 20] },
-      { value: 5.0, color: [200, 60, 10] },
+      { value: 2.0, color: [40, 180,  40] },
+      { value: 3.0, color: [200, 220,  20] },
+      { value: 5.0, color: [200,  60,  10] },
     ],
-    legendLabels: ['0', '0.5', '1.0', '2.0', '3.0', '5.0'],
-    apiAvailable: true,
-    dataSource: 'PIFSC ESA-CCI Chl-a (8-day composite) / INCOIS Oceansat-2',
+    legendLabels: ['5.0', '3.0', '2.0', '1.0', '0.5', '0'],
   },
   {
     id: 'salinity',
-    label: 'Sea Surface Salinity',
+    label: 'Salinity',
     shortLabel: 'Salinity',
     unit: 'PSU',
-    icon: <Droplets className="w-3.5 h-3.5" />,
-    dataField: 'salinity',
+    sublabel: 'Practical Salinity Units',
+    source: 'Physics model (simulated)',
+    icon: <Droplets className="w-4 h-4 text-sky-300" />,
+    isSimulated: true,
     colorStops: [
       { value: 30, color: [200, 220, 255] },
-      { value: 33, color: [80, 160, 220] },
-      { value: 34, color: [40, 100, 180] },
-      { value: 35, color: [20, 60, 140] },
-      { value: 36, color: [60, 20, 120] },
-      { value: 38, color: [120, 10, 80] },
+      { value: 32, color: [120, 180, 230] },
+      { value: 34, color: [40,  100, 180] },
+      { value: 35, color: [20,   60, 140] },
+      { value: 36, color: [60,   20, 120] },
+      { value: 38, color: [120,  10,  80] },
     ],
-    legendLabels: ['30', '33', '34', '35', '36', '38'],
-    apiAvailable: false,
-    dataSource: 'Physics model — no free real-time salinity API',
+    legendLabels: ['38', '36', '35', '34', '32', '30'],
   },
   {
-    id: 'waveHeight',
-    label: 'Significant Wave Height',
-    shortLabel: 'Waves',
-    unit: 'm',
-    icon: <Waves className="w-3.5 h-3.5" />,
-    dataField: 'waveHeight',
+    id: 'oxygen',
+    label: 'Dissolved Oxygen',
+    shortLabel: 'O₂',
+    unit: 'mg/L',
+    sublabel: 'Oxygen in water',
+    source: 'Simulated (no free real-time API)',
+    icon: <span className="text-[11px] font-bold text-cyan-300 w-4 inline-block text-center">O₂</span>,
+    isSimulated: true,
     colorStops: [
-      { value: 0, color: [10, 40, 80] },
-      { value: 0.5, color: [20, 100, 140] },
-      { value: 1.0, color: [40, 180, 120] },
-      { value: 1.5, color: [180, 200, 40] },
-      { value: 2.5, color: [220, 120, 20] },
-      { value: 4.0, color: [200, 30, 20] },
+      { value: 2,  color: [80,  10, 10] },
+      { value: 4,  color: [160, 30, 30] },
+      { value: 6,  color: [40, 120, 180] },
+      { value: 7,  color: [20, 180, 160] },
+      { value: 9,  color: [60, 220,  80] },
+      { value: 12, color: [200, 240, 220] },
     ],
-    legendLabels: ['0m', '0.5m', '1.0m', '1.5m', '2.5m', '4.0m'],
-    apiAvailable: true,
-    dataSource: 'Open-Meteo Marine API (WaveWatch III / ECMWF)',
-  },
-  {
-    id: 'wind',
-    label: 'Wind Speed',
-    shortLabel: 'Wind',
-    unit: 'km/h',
-    icon: <Wind className="w-3.5 h-3.5" />,
-    dataField: 'windSpeed',
-    colorStops: [
-      { value: 0, color: [20, 40, 60] },
-      { value: 8, color: [40, 120, 160] },
-      { value: 15, color: [60, 180, 100] },
-      { value: 25, color: [200, 200, 40] },
-      { value: 35, color: [220, 100, 20] },
-      { value: 50, color: [180, 20, 40] },
-    ],
-    legendLabels: ['0', '8', '15', '25', '35', '50 km/h'],
-    apiAvailable: true,
-    dataSource: 'Estimated from Open-Meteo Marine wave data',
+    legendLabels: ['12', '9', '7', '6', '4', '2'],
   },
   {
     id: 'current',
-    label: 'Ocean Current Speed',
-    shortLabel: 'Current',
+    label: 'Ocean Currents',
+    shortLabel: 'Currents',
     unit: 'm/s',
-    icon: <Navigation className="w-3.5 h-3.5" />,
-    dataField: 'currentSpeed',
+    sublabel: 'Surface current velocity',
+    source: 'Open-Meteo Marine (ocean_current_velocity)',
+    icon: <Navigation className="w-4 h-4 text-blue-300" />,
+    isSimulated: false,
     colorStops: [
-      { value: 0, color: [10, 20, 60] },
-      { value: 0.2, color: [20, 80, 140] },
+      { value: 0,   color: [10,  20, 60] },
+      { value: 0.2, color: [20,  80, 140] },
       { value: 0.4, color: [40, 160, 160] },
       { value: 0.6, color: [100, 200, 60] },
       { value: 1.0, color: [220, 180, 20] },
-      { value: 1.5, color: [200, 40, 20] },
+      { value: 1.5, color: [200,  40, 20] },
     ],
-    legendLabels: ['0', '0.2', '0.4', '0.6', '1.0', '1.5 m/s'],
-    apiAvailable: true,
-    dataSource: 'Open-Meteo Marine API (ocean_current_velocity)',
+    legendLabels: ['1.5', '1.0', '0.6', '0.4', '0.2', '0'],
   },
   {
-    id: 'bathymetry',
-    label: 'Ocean Depth (Bathymetry)',
-    shortLabel: 'Depth',
+    id: 'ssh',
+    label: 'Sea Surface Height (SSH)',
+    shortLabel: 'SSH',
     unit: 'm',
-    icon: <Compass className="w-3.5 h-3.5" />,
-    dataField: 'bathymetry',
+    sublabel: 'Sea level anomaly',
+    source: 'Simulated (COPERNICUS/JASON-3 style)',
+    icon: <Waves className="w-4 h-4 text-indigo-300" />,
+    isSimulated: true,
     colorStops: [
-      { value: 0, color: [160, 210, 230] },
-      { value: 200, color: [80, 160, 200] },
-      { value: 1000, color: [40, 100, 160] },
-      { value: 3000, color: [20, 60, 120] },
-      { value: 6000, color: [10, 30, 80] },
-      { value: 11000, color: [5, 10, 40] },
+      { value: -0.5, color: [20,  20, 120] },
+      { value: -0.2, color: [40,  80, 200] },
+      { value: 0,    color: [220, 230, 240] },
+      { value: 0.2,  color: [240, 200,  40] },
+      { value: 0.5,  color: [220,  60,  20] },
+      { value: 1.0,  color: [180,  10,  10] },
     ],
-    legendLabels: ['0m', '200m', '1km', '3km', '6km', '11km'],
-    apiAvailable: false,
-    dataSource: 'Not connected — requires GEBCO/ETOPO integration',
+    legendLabels: ['1.0m', '0.5m', '0m', '-0.2m', '-0.5m', ''],
+  },
+  {
+    id: 'ph',
+    label: 'pH (Acidity/Alkalinity)',
+    shortLabel: 'pH',
+    unit: '',
+    sublabel: 'Ocean acidity',
+    source: 'Simulated (no free real-time pH API)',
+    icon: <span className="text-[11px] font-bold text-purple-300 w-4 inline-block text-center">pH</span>,
+    isSimulated: true,
+    colorStops: [
+      { value: 7.5,  color: [180,  20,  20] },
+      { value: 7.7,  color: [220, 100,  20] },
+      { value: 7.9,  color: [220, 200,  40] },
+      { value: 8.0,  color: [60,  200, 100] },
+      { value: 8.1,  color: [40,  160, 200] },
+      { value: 8.3,  color: [20,   60, 160] },
+    ],
+    legendLabels: ['8.3', '8.1', '8.0', '7.9', '7.7', '7.5'],
+  },
+  {
+    id: 'turbidity',
+    label: 'Turbidity',
+    shortLabel: 'Turbidity',
+    unit: 'FTU',
+    sublabel: 'Water clarity',
+    source: 'Simulated (coastal model)',
+    icon: <span className="text-[11px] font-bold text-amber-300 w-4 inline-block text-center">···</span>,
+    isSimulated: true,
+    colorStops: [
+      { value: 0,  color: [5,   10,  60] },
+      { value: 1,  color: [20,  60, 120] },
+      { value: 3,  color: [60, 160, 100] },
+      { value: 5,  color: [180, 180,  40] },
+      { value: 8,  color: [180,  80,  20] },
+      { value: 10, color: [120,  40,  10] },
+    ],
+    legendLabels: ['10', '8', '5', '3', '1', '0'],
+  },
+  {
+    id: 'nitrate',
+    label: 'Nitrate Concentration',
+    shortLabel: 'NO₃',
+    unit: 'mmol/m³',
+    sublabel: 'Nutrient level',
+    source: 'Simulated (upwelling model)',
+    icon: <span className="text-[11px] font-bold text-green-300 w-4 inline-block text-center">NO₃</span>,
+    isSimulated: true,
+    colorStops: [
+      { value: 0,  color: [5,   10,  40] },
+      { value: 2,  color: [20,  60, 100] },
+      { value: 5,  color: [40, 140,  80] },
+      { value: 10, color: [140, 200,  40] },
+      { value: 20, color: [220, 160,  20] },
+      { value: 30, color: [200,  40,  10] },
+    ],
+    legendLabels: ['30', '20', '10', '5', '2', '0'],
   },
   {
     id: 'pfz',
     label: 'Potential Fishing Zones',
     shortLabel: 'PFZ',
     unit: '%',
-    icon: <Fish className="w-3.5 h-3.5" />,
-    dataField: 'pfz_probability',
+    sublabel: 'ML fishing probability',
+    source: 'ML RandomForest (INCOIS / ISRO)',
+    icon: <Fish className="w-4 h-4 text-emerald-400" />,
+    isSimulated: false,
     colorStops: [
-      { value: 0, color: [60, 10, 10] },
-      { value: 0.3, color: [180, 60, 20] },
+      { value: 0,   color: [60,  10,  10] },
+      { value: 0.3, color: [180, 60,  20] },
       { value: 0.5, color: [220, 160, 20] },
-      { value: 0.7, color: [80, 200, 60] },
-      { value: 0.9, color: [20, 255, 100] },
-      { value: 1.0, color: [0, 255, 180] },
+      { value: 0.7, color: [80,  200, 60] },
+      { value: 0.9, color: [20,  255, 100] },
+      { value: 1.0, color: [0,   255, 180] },
     ],
-    legendLabels: ['0%', '30%', '50%', '70%', '90%', '100%'],
-    apiAvailable: true,
-    dataSource: 'ML RandomForest (GeoJSON — INCOIS/ISRO satellite-derived)',
+    legendLabels: ['100%', '90%', '70%', '50%', '30%', '0%'],
   },
 ];
 
 // ═══════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
+// TYPES
 // ═══════════════════════════════════════════════════════════
 
 interface GlobalOceanGlobeProps {
@@ -215,12 +271,7 @@ interface GlobalOceanGlobeProps {
   onCloseFullScreen?: () => void;
 }
 
-interface SelectedPoint {
-  lat: number;
-  lng: number;
-  screenX: number;
-  screenY: number;
-}
+interface SelectedPoint { lat: number; lng: number }
 
 interface PfzMarkerData {
   latitude: number;
@@ -232,21 +283,26 @@ interface PfzMarkerData {
   date: string;
 }
 
-interface LocationDataExtended extends MarineLocationData {
+interface ExtendedLocationData extends MarineLocationData {
   dataStatus?: 'LIVE' | 'CACHED' | 'MODEL' | 'SIMULATED';
   dataTimestamp?: string;
-  sstStatus?: string;
   sstSource?: string;
-  chlorophyllStatus?: string;
   chlorophyllSource?: string;
   waveSource?: string;
-  currentSource?: string;
-  salinityStatus?: string;
-  windNote?: string;
+  // Simulated extended fields
+  oxygen?: number;
+  ph?: number;
+  turbidity?: number;
+  nitrate?: number;
+  sshMeters?: number;
 }
 
+// ═══════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════
+
 const EARTH_RADIUS = 2;
-const MARKER_RADIUS = EARTH_RADIUS + 0.02;
+const MARKER_RADIUS = EARTH_RADIUS + 0.025;
 
 function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -266,30 +322,108 @@ function vector3ToLatLng(point: THREE.Vector3): { lat: number; lng: number } {
   return { lat: parseFloat(lat.toFixed(4)), lng: parseFloat(normalizedLng.toFixed(4)) };
 }
 
-function interpolateColor(value: number, stops: { value: number; color: [number, number, number] }[]): [number, number, number] {
-  if (value <= stops[0].value) return stops[0].color;
-  if (value >= stops[stops.length - 1].value) return stops[stops.length - 1].color;
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (value >= stops[i].value && value <= stops[i + 1].value) {
-      const t = (value - stops[i].value) / (stops[i + 1].value - stops[i].value);
-      return [
-        Math.round(stops[i].color[0] + (stops[i + 1].color[0] - stops[i].color[0]) * t),
-        Math.round(stops[i].color[1] + (stops[i + 1].color[1] - stops[i].color[1]) * t),
-        Math.round(stops[i].color[2] + (stops[i + 1].color[2] - stops[i].color[2]) * t),
-      ];
-    }
-  }
-  return stops[stops.length - 1].color;
+// Deterministic marine data generator
+function generateMarineData(lat: number, lng: number, timeOffset = 0) {
+  const h1 = Math.abs(Math.sin(lat * 0.0174533 * 127.1 + lng * 0.0174533 * 311.7) * 43758.5453 % 1);
+  const h2 = Math.abs(Math.sin(lat * 0.05 + 1 + lng * 0.05 + 2) * 12345.678 % 1);
+  const h3 = Math.abs(Math.sin(lat * 0.03 - lng * 0.07 + 3) * 98765.432 % 1);
+  const tVar = Math.sin(timeOffset * 0.261799) * 0.06; // π/12
+
+  const latAbs = Math.abs(lat);
+  const tropicFactor = Math.max(0, 1 - latAbs / 50);
+
+  const isBayOfBengal = lng > 80 && lng < 95 && lat > 5 && lat < 22;
+  const isArabianSea = lng > 55 && lng < 78 && lat > 8 && lat < 27;
+  const isCoastal = h2 > 0.65;
+
+  // SST
+  let sst = 28 * tropicFactor + 5 * (1 - tropicFactor);
+  if (isBayOfBengal) sst = 28 + h1 * 3;
+  if (isArabianSea) sst = 27 + h1 * 2;
+  sst += tVar * 2 + (h1 - 0.5) * 2;
+  sst = Math.max(2, Math.min(34, +sst.toFixed(1)));
+
+  // Chlorophyll
+  let chl = 0.2 + h1 * 0.6;
+  if (isBayOfBengal) chl = 0.6 + h1 * 1.4;
+  if (isArabianSea) chl = 1.1 + h1 * 1.8; // upwelling
+  if (isCoastal) chl += 0.5;
+  chl += tVar * 0.2;
+  chl = Math.max(0.05, Math.min(5, +chl.toFixed(2)));
+
+  // Salinity
+  let sal = 35 + (h2 - 0.5) * 1.5;
+  if (isBayOfBengal) sal = 33 + h1 * 1.5;
+  if (isArabianSea) sal = 36 + h1 * 0.8;
+  sal = Math.max(30, Math.min(38, +sal.toFixed(1)));
+
+  // Wave height
+  let waveH = 0.4 + h2 * 1.5;
+  if (latAbs > 40) waveH += 1.5;
+  waveH += tVar * 0.3;
+  waveH = Math.max(0.1, Math.min(6, +waveH.toFixed(1)));
+
+  // Wind
+  let wind = 8 + h3 * 20;
+  if (latAbs > 30) wind += 10;
+  wind += tVar * 3;
+  wind = Math.max(2, Math.min(60, +wind.toFixed(0)));
+
+  // Current
+  let cur = 0.1 + h1 * 0.8;
+  if (latAbs < 5) cur += 0.5;
+  cur = Math.max(0.05, Math.min(2, +cur.toFixed(2)));
+
+  // Dissolved Oxygen (higher in cold/polar, lower in warm tropics)
+  let oxygen = 6.5 + (1 - tropicFactor) * 3 + (h2 - 0.5) * 1.5;
+  oxygen += tVar * 0.5;
+  oxygen = Math.max(2.5, Math.min(12, +oxygen.toFixed(1)));
+
+  // SSH (mesoscale eddies)
+  let ssh = (h1 - 0.5) * 0.4 + Math.sin(lat * 0.1 + timeOffset * 0.05) * 0.1;
+  ssh = Math.max(-0.9, Math.min(0.9, +ssh.toFixed(2)));
+
+  // pH (inversely related to SST + slight random variation)
+  let ph = 8.1 - (sst - 20) * 0.004 + (h3 - 0.5) * 0.15;
+  ph = Math.max(7.5, Math.min(8.4, +ph.toFixed(2)));
+
+  // Turbidity (higher near coasts/river mouths)
+  let turb = 0.5 + h2 * 2.5;
+  if (isBayOfBengal) turb = 2 + h1 * 4;
+  if (isCoastal) turb += 1.5;
+  turb = Math.max(0.1, Math.min(10, +turb.toFixed(1)));
+
+  // Nitrate (upwelling zones much higher)
+  let nitrate = 2 + h1 * 6;
+  if (isArabianSea) nitrate = 10 + h1 * 15;
+  if (isBayOfBengal) nitrate = 3 + h1 * 5;
+  nitrate = Math.max(0.2, Math.min(30, +nitrate.toFixed(1)));
+
+  const risk: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' =
+    waveH > 3 || wind > 45 ? 'HIGH' : waveH > 1.8 || wind > 28 ? 'MODERATE' : 'LOW';
+
+  const suitability: 'FAVOURABLE' | 'MODERATE' | 'UNFAVOURABLE' | 'RESTRICTED' =
+    chl > 0.8 && sst > 24 && sst < 30 && waveH < 2 ? 'FAVOURABLE' :
+    chl > 0.4 && waveH < 2.5 ? 'MODERATE' : 'UNFAVOURABLE';
+
+  const productivity: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY HIGH' =
+    chl > 2 ? 'VERY HIGH' : chl > 1 ? 'HIGH' : chl > 0.5 ? 'MEDIUM' : 'LOW';
+
+  return {
+    sst, chl, sal, waveH, wind, cur,
+    oxygen, ssh, ph, turbidity: turb, nitrate,
+    risk, suitability, productivity,
+  };
 }
 
-function getLayerShaderUniforms(layer: OceanLayerDef): { colorStops: number[]; valueStops: number[]; numStops: number } {
-  const colorStops: number[] = [];
-  const valueStops: number[] = [];
-  layer.colorStops.forEach(s => {
-    colorStops.push(s.color[0] / 255, s.color[1] / 255, s.color[2] / 255);
-    valueStops.push(s.value);
-  });
-  return { colorStops, valueStops, numStops: layer.colorStops.length };
+function getDisplayDate(timeOffset: number): string {
+  const base = new Date('2026-08-28T00:00:00Z');
+  const d = new Date(base.getTime() + timeOffset * 3_600_000);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}  ${hh}:${mm} UTC`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -305,341 +439,286 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
   isFullScreenDefault = false,
   onCloseFullScreen,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const globeRef = useRef<THREE.Mesh | null>(null);
-  const globeMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
-  const markerGroupRef = useRef<THREE.Group | null>(null);
-  const pfzGroupRef = useRef<THREE.Group | null>(null);
-  const selectedMarkerRef = useRef<THREE.Mesh | null>(null);
-  const animationRef = useRef<number>(0);
-  const isDraggingRef = useRef(false);
-  const previousMouseRef = useRef({ x: 0, y: 0 });
-  const rotationRef = useRef({ x: 0.3, y: -1.4 });
-  const targetRotationRef = useRef({ x: 0.3, y: -1.4 });
-  const zoomRef = useRef(5.5);
-  const targetZoomRef = useRef(5.5);
-  const autoRotateRef = useRef(true);
-  const dragStartRef = useRef({ x: 0, y: 0 });
+  // ── Three.js refs ──────────────────────────────────────────────────
+  const containerRef       = useRef<HTMLDivElement>(null);
+  const canvasRef          = useRef<HTMLCanvasElement>(null);
+  const rendererRef        = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef           = useRef<THREE.Scene | null>(null);
+  const cameraRef          = useRef<THREE.PerspectiveCamera | null>(null);
+  const globeRef           = useRef<THREE.Mesh | null>(null);
+  const globeMaterialRef   = useRef<THREE.ShaderMaterial | null>(null);
+  const atmosphereRef      = useRef<THREE.Mesh | null>(null);
+  const markerGroupRef     = useRef<THREE.Group | null>(null);
+  const pfzGroupRef        = useRef<THREE.Group | null>(null);
+  const selectedMarkerRef  = useRef<THREE.Mesh | null>(null);
+  const selectedGlowRef    = useRef<THREE.Mesh | null>(null);
+  const animationRef       = useRef<number>(0);
+  const isDraggingRef      = useRef(false);
+  const prevMouseRef       = useRef({ x: 0, y: 0 });
+  const rotationRef        = useRef({ x: 0.3, y: -1.4 });
+  const targetRotRef       = useRef({ x: 0.3, y: -1.4 });
+  const zoomRef            = useRef(5.5);
+  const targetZoomRef      = useRef(5.5);
+  const autoRotateRef      = useRef(true);
+  const dragStartRef       = useRef({ x: 0, y: 0 });
+  const pulseRef           = useRef(0);
+  const playIntervalRef    = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFullScreen, setIsFullScreen] = useState(isFullScreenDefault);
-  const [activeLayer, setActiveLayer] = useState<OceanLayerId>('sst');
-  const [selectedPoint, setSelectedPoint] = useState<SelectedPoint | null>(null);
-  const [locationData, setLocationData] = useState<LocationDataExtended | null>(null);
+  // ── React state ────────────────────────────────────────────────────
+  const [isLoading,       setIsLoading]       = useState(true);
+  const [isFullScreen,    setIsFullScreen]     = useState(isFullScreenDefault);
+  const [activeLayer,     setActiveLayer]     = useState<OceanLayerId>('sst');
+  const [selectedPoint,   setSelectedPoint]   = useState<SelectedPoint | null>(null);
+  const [locationData,    setLocationData]    = useState<ExtendedLocationData | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [pfzMarkers, setPfzMarkers] = useState<PfzMarkerData[]>([]);
-  const [selectedPfz, setSelectedPfz] = useState<PfzMarkerData | null>(null);
-  const [layerPanelOpen, setLayerPanelOpen] = useState(true);
-  const [analysisResult, setAnalysisResult] = useState<{ loading: boolean; data?: any; error?: string }>({ loading: false });
+  const [pfzMarkers,      setPfzMarkers]      = useState<PfzMarkerData[]>([]);
+  const [selectedPfz,     setSelectedPfz]     = useState<PfzMarkerData | null>(null);
+  const [analysisResult,  setAnalysisResult]  = useState<{ loading: boolean; answer?: string; error?: string }>({ loading: false });
+  const [timeOffset,      setTimeOffset]      = useState(0);
+  const [isPlaying,       setIsPlaying]       = useState(false);
+  const [dataStatus,      setDataStatus]      = useState<'LIVE' | 'SIMULATED'>('SIMULATED');
 
   const currentLayerDef = OCEAN_LAYERS.find(l => l.id === activeLayer)!;
 
-  // Load PFZ data on mount
+  // ── Load PFZ data ──────────────────────────────────────────────────
   useEffect(() => {
     fetchMLPfzPredictions().then(res => {
-      if (res?.predictions) {
-        setPfzMarkers(res.predictions);
-      }
+      if (res?.predictions) setPfzMarkers(res.predictions);
     });
   }, []);
 
-  // Build the fragment shader based on the active layer
-  const buildOceanFragShader = useCallback((layerId: OceanLayerId) => {
+  // ── GLSL fragment shader ───────────────────────────────────────────
+  const buildFragShader = useCallback((layerId: OceanLayerId): string => {
     const layer = OCEAN_LAYERS.find(l => l.id === layerId)!;
-    const uniforms = getLayerShaderUniforms(layer);
+    const s = layer.colorStops;
+    const n = s.length;
 
-    // Generate GLSL color stop array
-    let colorStopsGlsl = '';
-    let valueStopsGlsl = '';
-    for (let i = 0; i < uniforms.numStops; i++) {
-      colorStopsGlsl += `vec3(${uniforms.colorStops[i * 3].toFixed(4)}, ${uniforms.colorStops[i * 3 + 1].toFixed(4)}, ${uniforms.colorStops[i * 3 + 2].toFixed(4)})${i < uniforms.numStops - 1 ? ',' : ''}`;
-      valueStopsGlsl += `${uniforms.valueStops[i].toFixed(4)}${i < uniforms.numStops - 1 ? ',' : ''}`;
+    // Generate GLSL color stop arrays (fixed at 9 slots max, pad with last value)
+    const MAX = 9;
+    const colors: string[] = [];
+    const vals: string[] = [];
+    for (let i = 0; i < MAX; i++) {
+      const idx = Math.min(i, n - 1);
+      colors.push(`vec3(${(s[idx].color[0]/255).toFixed(4)},${(s[idx].color[1]/255).toFixed(4)},${(s[idx].color[2]/255).toFixed(4)})`);
+      vals.push((s[idx].value).toFixed(6));
     }
 
-    // Compute value range for procedural visualization
-    const minVal = uniforms.valueStops[0];
-    const maxVal = uniforms.valueStops[uniforms.numStops - 1];
+    const oceanCase = {
+      sst: `
+        t = 1.0 - abs(latNorm - 0.5) * 1.8;
+        t += (fbm(coord * 4.0 + vec2(2.1, 0.8)) - 0.5) * 0.25;
+        t -= depthFactor * 0.08;
+        t += sin(u_timeOffset * 0.261799) * 0.05;`,
+      chlorophyll: `
+        float coastal = 1.0 - smoothstep(0.0, 0.35, depthFactor);
+        t = coastal * 0.6 + fbm(coord * 7.0) * 0.35;
+        t += abs(latNorm - 0.5) * 0.3;`,
+      salinity: `
+        t = 0.4 + (1.0 - abs(latNorm - 0.36)) * 0.3;
+        t += (fbm(coord * 5.0) - 0.5) * 0.2;
+        float riverMouth = smoothstep(8.0, 2.0, length(vec2(lng - 86.0, lat - 16.0)));
+        t -= riverMouth * 0.25;`,
+      oxygen: `
+        t = 1.0 - (1.0 - abs(latNorm - 0.5) * 1.6) * 0.7;
+        t += (1.0 - depthFactor) * 0.2;
+        t += (fbm(coord * 4.0) - 0.5) * 0.15;`,
+      current: `
+        float gyre = sin(lat * 0.08 + u_timeOffset * 0.04) * cos(lng * 0.05);
+        t = abs(gyre) * 0.45 + fbm(coord * 5.0) * 0.3 + depthFactor * 0.2;`,
+      ssh: `
+        float eddy = sin(lat * 0.15 + u_timeOffset * 0.08) * cos(lng * 0.08);
+        t = 0.5 + eddy * 0.4 + (fbm(coord * 6.0) - 0.5) * 0.2;`,
+      ph: `
+        float warmAcid = (1.0 - abs(latNorm - 0.5) * 1.5) * 0.3;
+        t = 0.75 - warmAcid + (fbm(coord * 4.0) - 0.5) * 0.15;`,
+      turbidity: `
+        float coastal2 = 1.0 - smoothstep(0.0, 0.4, depthFactor);
+        t = coastal2 * 0.7 + fbm(coord * 8.0) * 0.25;
+        float bay = smoothstep(12.0, 3.0, length(vec2(lng - 86.0, lat - 14.0)));
+        t += bay * 0.4;`,
+      nitrate: `
+        float arabian = smoothstep(18.0, 4.0, length(vec2(lng - 64.0, lat - 14.0)));
+        float peru = smoothstep(12.0, 3.0, length(vec2(lng + 81.0, lat + 8.0)));
+        float upwell = max(arabian, peru);
+        t = upwell * 0.8 + (1.0 - depthFactor) * 0.15 + fbm(coord * 5.0) * 0.15;`,
+      pfz: `
+        float coastal3 = 1.0 - smoothstep(0.0, 0.4, depthFactor);
+        float warm = 1.0 - abs(latNorm - 0.45) * 1.8;
+        t = coastal3 * 0.45 + warm * 0.3 + fbm(coord * 6.0) * 0.25;`,
+    }[layerId] ?? `t = fbm(coord * 4.0);`;
 
     return `
       varying vec3 vNormal;
       varying vec3 vPosition;
-      varying vec2 vUv;
       uniform vec3 lightDir;
+      uniform float u_timeOffset;
 
-      float hash(vec2 p) {
-        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float noise(vec2 p){
+        vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
       }
-
-      float noise(vec2 p) {
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-        float a = hash(i);
-        float b = hash(i + vec2(1.0, 0.0));
-        float c = hash(i + vec2(0.0, 1.0));
-        float d = hash(i + vec2(1.0, 1.0));
-        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-      }
-
-      float fbm(vec2 p) {
-        float v = 0.0;
-        float a = 0.5;
-        for (int i = 0; i < 5; i++) {
-          v += a * noise(p);
-          p *= 2.0;
-          a *= 0.5;
-        }
+      float fbm(vec2 p){
+        float v=0.0,a=0.5;
+        for(int i=0;i<5;i++){v+=a*noise(p);p*=2.0;a*=0.5;}
         return v;
       }
 
-      vec3 getLayerColor(float t) {
-        vec3 colors[6];
-        float values[6];
-        colors[0] = ${colorStopsGlsl.split(',').slice(0, 1).join(',')};
-        colors[1] = ${colorStopsGlsl.split(',').slice(1, 2).join(',')};
-        colors[2] = ${colorStopsGlsl.split(',').slice(2, 3).join(',')};
-        colors[3] = ${colorStopsGlsl.split(',').slice(3, 4).join(',')};
-        colors[4] = ${colorStopsGlsl.split(',').slice(4, 5).join(',')};
-        colors[5] = ${colorStopsGlsl.split(',').slice(5, 6).join(',')};
-        values[0] = ${uniforms.valueStops[0].toFixed(4)};
-        values[1] = ${uniforms.valueStops[1].toFixed(4)};
-        values[2] = ${uniforms.valueStops[2].toFixed(4)};
-        values[3] = ${uniforms.valueStops[3].toFixed(4)};
-        values[4] = ${uniforms.valueStops[4].toFixed(4)};
-        values[5] = ${uniforms.valueStops[5].toFixed(4)};
-
-        float val = mix(${minVal.toFixed(4)}, ${maxVal.toFixed(4)}, t);
-
-        if (val <= values[0]) return colors[0];
-        if (val >= values[5]) return colors[5];
-
-        for (int i = 0; i < 5; i++) {
-          if (val >= values[i] && val <= values[i+1]) {
-            float f = (val - values[i]) / (values[i+1] - values[i]);
-            return mix(colors[i], colors[i+1], f);
+      vec3 getLayerColor(float t){
+        vec3 colors[${MAX}]; float vals[${MAX}];
+        ${colors.map((c, i) => `colors[${i}]=${c};`).join('')}
+        ${vals.map((v, i) => `vals[${i}]=${v};`).join('')}
+        float minV=vals[0], maxV=vals[${n-1}];
+        float val=mix(minV,maxV,clamp(t,0.0,1.0));
+        if(val<=vals[0]) return colors[0];
+        if(val>=vals[${n-1}]) return colors[${n-1}];
+        for(int i=0;i<${n-1};i++){
+          if(val>=vals[i]&&val<=vals[i+1]){
+            float f=(val-vals[i])/(vals[i+1]-vals[i]);
+            return mix(colors[i],colors[i+1],f);
           }
         }
-        return colors[5];
+        return colors[${n-1}];
       }
 
-      void main() {
-        float lat = asin(vNormal.y) * 57.2958;
-        float lng = atan(vNormal.z, vNormal.x) * 57.2958;
+      void main(){
+        float lat=asin(clamp(vNormal.y,-1.0,1.0))*57.2958;
+        float lng=atan(vNormal.z,vNormal.x)*57.2958;
+        float latNorm=(lat+90.0)/180.0;
+        vec2 coord=vec2(lng*0.05,lat*0.05);
 
-        vec2 coord = vec2(lng * 0.05, lat * 0.05);
-        float land = fbm(coord * 3.0 + vec2(1.7, 2.3));
-        land += 0.3 * fbm(coord * 8.0 + vec2(5.1, 3.7));
-
-        float threshold = 0.52;
-        float indiaFactor = smoothstep(20.0, 5.0, length(vec2(lng - 78.0, lat - 20.0)));
-        float africaFactor = smoothstep(30.0, 10.0, length(vec2(lng - 20.0, lat - 5.0)));
-        float euroFactor = smoothstep(25.0, 8.0, length(vec2(lng - 10.0, lat - 48.0)));
-        float asiaFactor = smoothstep(35.0, 12.0, length(vec2(lng - 100.0, lat - 35.0)));
-        float naFactor = smoothstep(30.0, 10.0, length(vec2(lng + 100.0, lat - 40.0)));
-        float saFactor = smoothstep(25.0, 8.0, length(vec2(lng + 60.0, lat + 15.0)));
-        float ausFactor = smoothstep(20.0, 6.0, length(vec2(lng - 135.0, lat + 25.0)));
-
-        float landBoost = max(max(max(indiaFactor, africaFactor), max(euroFactor, asiaFactor)), max(max(naFactor, saFactor), ausFactor));
-        threshold -= landBoost * 0.15;
-
-        bool isLand = land > threshold;
+        // Land mask
+        float land=fbm(coord*3.0+vec2(1.7,2.3))+0.3*fbm(coord*8.0+vec2(5.1,3.7));
+        float thr=0.52;
+        float landBoost=max(max(
+          smoothstep(22.0,5.0,length(vec2(lng-78.0,lat-20.0))),
+          smoothstep(32.0,10.0,length(vec2(lng-20.0,lat-5.0)))),max(max(
+          smoothstep(28.0,8.0,length(vec2(lng-10.0,lat-48.0))),
+          smoothstep(38.0,12.0,length(vec2(lng-100.0,lat-35.0)))),max(
+          smoothstep(32.0,10.0,length(vec2(lng+100.0,lat-40.0))),max(
+          smoothstep(26.0,8.0,length(vec2(lng+60.0,lat+15.0))),
+          smoothstep(22.0,6.0,length(vec2(lng-135.0,lat+25.0)))))));
+        thr-=landBoost*0.16;
+        bool isLand=land>thr;
 
         vec3 color;
-        if (isLand) {
-          // Dark land for all layers
-          vec3 lowLand = vec3(0.08, 0.1, 0.06);
-          vec3 highLand = vec3(0.12, 0.09, 0.05);
-          float elevation = (land - threshold) / (1.0 - threshold);
-          color = mix(lowLand, highLand, elevation);
+        if(isLand){
+          float elev=(land-thr)/(1.0-thr);
+          color=mix(vec3(0.078,0.098,0.059),vec3(0.120,0.088,0.050),elev);
+          // Snow caps
+          if(latNorm<0.1||latNorm>0.9) color=mix(color,vec3(0.9,0.95,1.0),smoothstep(0.05,0.0,latNorm-0.9+0.9));
         } else {
-          // Ocean: colorized by layer variable
-          float depth = (threshold - land) / threshold;
-
-          // Generate a pseudo-scientific ocean value based on latitude, depth, and noise
-          float latNorm = (lat + 90.0) / 180.0;
-          float oceanNoise = fbm(coord * 6.0 + vec2(4.2, 1.8));
-          float depthFactor = depth;
-
-          // Generate a normalized value [0,1] representing the ocean variable
-          float t = 0.0;
-          ${layerId === 'sst' ? `
-            // SST: warm at equator, cold at poles
-            t = 1.0 - abs(latNorm - 0.5) * 1.6;
-            t += (oceanNoise - 0.5) * 0.2;
-            t -= depthFactor * 0.1;
-            t = clamp(t, 0.0, 1.0);
-          ` : layerId === 'chlorophyll' ? `
-            // Chlorophyll: high near coasts, upwelling zones
-            float coastal = 1.0 - smoothstep(0.0, 0.3, depthFactor);
-            t = coastal * 0.6 + oceanNoise * 0.4;
-            t += abs(latNorm - 0.5) * 0.3;
-            t = clamp(t, 0.0, 1.0);
-          ` : layerId === 'salinity' ? `
-            // Salinity: varies with latitude and freshwater input
-            t = 0.4 + (1.0 - abs(latNorm - 0.35)) * 0.3;
-            t += oceanNoise * 0.2;
-            t -= (1.0 - depthFactor) * 0.15;
-            t = clamp(t, 0.0, 1.0);
-          ` : layerId === 'waveHeight' ? `
-            // Waves: higher in open ocean, storms
-            t = depthFactor * 0.5 + oceanNoise * 0.4;
-            t += abs(latNorm - 0.5) * 0.3;
-            t = clamp(t, 0.0, 1.0);
-          ` : layerId === 'wind' ? `
-            // Wind: trade winds, westerlies patterns
-            float tradeWinds = smoothstep(0.1, 0.3, abs(latNorm - 0.5));
-            t = tradeWinds * 0.5 + oceanNoise * 0.35 + depthFactor * 0.15;
-            t = clamp(t, 0.0, 1.0);
-          ` : layerId === 'current' ? `
-            // Current: gyres and major flow
-            float gyre = sin(lat * 0.08) * cos(lng * 0.05);
-            t = abs(gyre) * 0.4 + oceanNoise * 0.3 + depthFactor * 0.2;
-            t = clamp(t, 0.0, 1.0);
-          ` : layerId === 'bathymetry' ? `
-            // Bathymetry: directly use depth
-            t = depthFactor;
-          ` : `
-            // PFZ: combine chlorophyll and temperature indicators
-            float coastal2 = 1.0 - smoothstep(0.0, 0.35, depthFactor);
-            float warmWater = 1.0 - abs(latNorm - 0.45) * 1.5;
-            t = coastal2 * 0.4 + warmWater * 0.3 + oceanNoise * 0.3;
-            t = clamp(t, 0.0, 1.0);
-          `}
-
-          color = getLayerColor(t);
-
-          // Subtle variation
-          color += vec3(oceanNoise * 0.03);
+          float depthFactor=(thr-land)/thr;
+          float oceanNoise=fbm(coord*6.0+vec2(4.2,1.8));
+          float t=0.0;
+          ${oceanCase}
+          t=clamp(t,0.0,1.0);
+          color=getLayerColor(t);
+          color+=vec3(oceanNoise*0.03);
         }
 
-        // Lighting
-        float diffuse = max(dot(vNormal, lightDir), 0.0);
-        float ambient = 0.3;
-        color *= (ambient + diffuse * 0.7);
-
-        // Atmosphere rim
-        float rim = 1.0 - max(dot(vNormal, normalize(cameraPosition - vPosition)), 0.0);
-        rim = pow(rim, 3.5);
-        color += vec3(0.1, 0.2, 0.4) * rim * 0.5;
-
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `;
+        float diff=max(dot(vNormal,lightDir),0.0);
+        color*=(0.28+diff*0.72);
+        float rim=pow(1.0-max(dot(vNormal,normalize(cameraPosition-vPosition)),0.0),3.5);
+        color+=vec3(0.1,0.22,0.42)*rim*0.5;
+        gl_FragColor=vec4(color,1.0);
+      }`;
   }, []);
 
-  // Initialize Three.js scene
+  // ── Three.js init ──────────────────────────────────────────────────
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
 
+    // Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020810);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     camera.position.z = zoomRef.current;
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer.setSize(width, height);
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     rendererRef.current = renderer;
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0x334455, 0.6);
-    scene.add(ambientLight);
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    sunLight.position.set(5, 3, 5);
-    scene.add(sunLight);
-    const rimLight = new THREE.DirectionalLight(0x4488ff, 0.3);
-    rimLight.position.set(-3, -1, -2);
-    scene.add(rimLight);
+    scene.add(new THREE.AmbientLight(0x334455, 0.55));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.3);
+    sun.position.set(5, 3, 5);
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0x4488ff, 0.25);
+    rim.position.set(-3, -1, -2);
+    scene.add(rim);
 
-    // Earth globe
-    const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 128, 64);
-    const vertexShader = `
+    // Globe
+    const vsh = `
       varying vec3 vNormal;
       varying vec3 vPosition;
       varying vec2 vUv;
-      void main() {
-        vNormal = normalize(normalMatrix * normal);
-        vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-
-    const earthMaterial = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader: buildOceanFragShader(activeLayer),
+      void main(){
+        vNormal=normalize(normalMatrix*normal);
+        vPosition=(modelMatrix*vec4(position,1.0)).xyz;
+        vUv=uv;
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+      }`;
+    const earthGeom = new THREE.SphereGeometry(EARTH_RADIUS, 128, 64);
+    const earthMat = new THREE.ShaderMaterial({
+      vertexShader: vsh,
+      fragmentShader: buildFragShader('sst'),
       uniforms: {
         lightDir: { value: new THREE.Vector3(0.5, 0.3, 0.5).normalize() },
         cameraPosition: { value: camera.position },
+        u_timeOffset: { value: 0 },
       },
     });
-
-    const globe = new THREE.Mesh(earthGeometry, earthMaterial);
+    const globe = new THREE.Mesh(earthGeom, earthMat);
     scene.add(globe);
     globeRef.current = globe;
-    globeMaterialRef.current = earthMaterial;
+    globeMaterialRef.current = earthMat;
 
-    // Atmosphere glow
-    const atmosphereGeometry = new THREE.SphereGeometry(EARTH_RADIUS * 1.015, 64, 32);
-    const atmosphereMaterial = new THREE.ShaderMaterial({
-      vertexShader: `
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        void main() {
-          vNormal = normalize(normalMatrix * normal);
-          vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        uniform vec3 cameraPos;
-        void main() {
-          float rim = 1.0 - max(dot(vNormal, normalize(cameraPos - vPosition)), 0.0);
-          rim = pow(rim, 4.0);
-          gl_FragColor = vec4(0.2, 0.5, 0.9, rim * 0.35);
-        }
-      `,
+    // Atmosphere
+    const atmGeom = new THREE.SphereGeometry(EARTH_RADIUS * 1.018, 64, 32);
+    const atmMat = new THREE.ShaderMaterial({
+      vertexShader: `varying vec3 vN; varying vec3 vP;
+        void main(){ vN=normalize(normalMatrix*normal);
+          vP=(modelMatrix*vec4(position,1.0)).xyz;
+          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `varying vec3 vN; varying vec3 vP; uniform vec3 cameraPos;
+        void main(){
+          float rim=pow(1.0-max(dot(vN,normalize(cameraPos-vP)),0.0),4.5);
+          gl_FragColor=vec4(0.18,0.48,0.92,rim*0.38); }`,
       uniforms: { cameraPos: { value: camera.position } },
-      transparent: true,
-      side: THREE.BackSide,
-      depthWrite: false,
+      transparent: true, side: THREE.BackSide, depthWrite: false,
     });
-    const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    const atmosphere = new THREE.Mesh(atmGeom, atmMat);
     scene.add(atmosphere);
+    atmosphereRef.current = atmosphere;
 
-    // Groups
+    // Marker group
     const markerGroup = new THREE.Group();
     scene.add(markerGroup);
     markerGroupRef.current = markerGroup;
 
+    // PFZ group
     const pfzGroup = new THREE.Group();
     scene.add(pfzGroup);
     pfzGroupRef.current = pfzGroup;
 
     // Stars
-    const starsGeometry = new THREE.BufferGeometry();
-    const starsCount = 1500;
-    const starPositions = new Float32Array(starsCount * 3);
-    for (let i = 0; i < starsCount * 3; i++) {
-      starPositions[i] = (Math.random() - 0.5) * 80;
-    }
-    starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-    const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, sizeAttenuation: true });
-    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    const starPos = new Float32Array(2000 * 3);
+    for (let i = 0; i < starPos.length; i++) starPos[i] = (Math.random() - 0.5) * 90;
+    const starGeom = new THREE.BufferGeometry();
+    starGeom.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const stars = new THREE.Points(starGeom, new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, sizeAttenuation: true }));
     scene.add(stars);
 
     // Animation loop
@@ -647,11 +726,11 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
       animationRef.current = requestAnimationFrame(animate);
 
       if (autoRotateRef.current && !isDraggingRef.current) {
-        targetRotationRef.current.y += 0.0008;
+        targetRotRef.current.y += 0.0007;
       }
 
-      rotationRef.current.x += (targetRotationRef.current.x - rotationRef.current.x) * 0.08;
-      rotationRef.current.y += (targetRotationRef.current.y - rotationRef.current.y) * 0.08;
+      rotationRef.current.x += (targetRotRef.current.x - rotationRef.current.x) * 0.08;
+      rotationRef.current.y += (targetRotRef.current.y - rotationRef.current.y) * 0.08;
       zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.08;
 
       globe.rotation.x = rotationRef.current.x;
@@ -664,22 +743,29 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
       pfzGroup.rotation.y = rotationRef.current.y;
 
       camera.position.z = zoomRef.current;
-      (earthMaterial.uniforms.cameraPosition as any).value.copy(camera.position);
-      (atmosphereMaterial.uniforms.cameraPos as any).value.copy(camera.position);
+      (earthMat.uniforms.cameraPosition as any).value.copy(camera.position);
+      (atmMat.uniforms.cameraPos as any).value.copy(camera.position);
+
+      // Pulse selected marker glow
+      pulseRef.current += 0.04;
+      if (selectedGlowRef.current) {
+        const mat = selectedGlowRef.current.material as THREE.MeshBasicMaterial;
+        mat.opacity = 0.08 + Math.abs(Math.sin(pulseRef.current)) * 0.18;
+        selectedGlowRef.current.scale.setScalar(1 + Math.sin(pulseRef.current * 0.7) * 0.08);
+      }
 
       renderer.render(scene, camera);
     };
     animate();
-
     setIsLoading(false);
 
     const handleResize = () => {
       if (!containerRef.current) return;
-      const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
-      camera.aspect = w / h;
+      const nw = containerRef.current.clientWidth;
+      const nh = containerRef.current.clientHeight;
+      camera.aspect = nw / nh;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      renderer.setSize(nw, nh);
     };
     window.addEventListener('resize', handleResize);
 
@@ -687,584 +773,779 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationRef.current);
       renderer.dispose();
-      earthGeometry.dispose();
-      earthMaterial.dispose();
-      atmosphereGeometry.dispose();
-      atmosphereMaterial.dispose();
-      starsGeometry.dispose();
-      starsMaterial.dispose();
+      earthGeom.dispose(); earthMat.dispose();
+      atmGeom.dispose(); atmMat.dispose();
+      starGeom.dispose();
     };
-  }, []);
+  }, [buildFragShader]);
 
-  // Update shader when layer changes
+  // ── Shader update on layer change ─────────────────────────────────
   useEffect(() => {
     if (!globeMaterialRef.current) return;
-    globeMaterialRef.current.fragmentShader = buildOceanFragShader(activeLayer);
+    globeMaterialRef.current.fragmentShader = buildFragShader(activeLayer);
     globeMaterialRef.current.needsUpdate = true;
-  }, [activeLayer, buildOceanFragShader]);
+  }, [activeLayer, buildFragShader]);
 
-  // Update PFZ markers visibility based on active layer
+  // ── Update time uniform ───────────────────────────────────────────
   useEffect(() => {
-    if (!pfzGroupRef.current) return;
-    pfzGroupRef.current.visible = activeLayer === 'pfz';
+    if (!globeMaterialRef.current) return;
+    globeMaterialRef.current.uniforms.u_timeOffset.value = timeOffset;
+  }, [timeOffset]);
+
+  // ── PFZ visibility ────────────────────────────────────────────────
+  useEffect(() => {
+    if (pfzGroupRef.current) pfzGroupRef.current.visible = activeLayer === 'pfz';
   }, [activeLayer]);
 
-  // Update PFZ markers when data changes
+  // ── PFZ markers update ────────────────────────────────────────────
   useEffect(() => {
-    if (!pfzGroupRef.current || pfzMarkers.length === 0) return;
     const group = pfzGroupRef.current;
-
+    if (!group || pfzMarkers.length === 0) return;
     while (group.children.length > 0) {
-      const child = group.children[0] as THREE.Mesh;
-      child.geometry?.dispose();
-      (child.material as THREE.Material)?.dispose();
-      group.remove(child);
+      const c = group.children[0] as THREE.Mesh;
+      c.geometry?.dispose(); (c.material as THREE.Material)?.dispose(); group.remove(c);
     }
-
-    const markerGeom = new THREE.SphereGeometry(0.025, 12, 8);
+    const geom = new THREE.SphereGeometry(0.022, 10, 7);
     pfzMarkers.forEach(pfz => {
-      const material = new THREE.MeshBasicMaterial({
+      const mat = new THREE.MeshBasicMaterial({
         color: pfz.pfz_probability > 0.7 ? 0x00ff88 : pfz.pfz_probability > 0.4 ? 0xffaa00 : 0xff4444,
-        transparent: true,
-        opacity: 0.85,
+        transparent: true, opacity: 0.85,
       });
-      const marker = new THREE.Mesh(markerGeom, material);
-      const pos = latLngToVector3(pfz.latitude, pfz.longitude, MARKER_RADIUS);
-      marker.position.copy(pos);
-      marker.userData = pfz;
-      group.add(marker);
+      const m = new THREE.Mesh(geom, mat);
+      m.position.copy(latLngToVector3(pfz.latitude, pfz.longitude, MARKER_RADIUS));
+      m.userData = pfz;
+      group.add(m);
     });
-
-    return () => { markerGeom.dispose(); };
+    return () => { geom.dispose(); };
   }, [pfzMarkers]);
 
-  // Interaction handlers
+  // ── Play animation ────────────────────────────────────────────────
+  const handlePlay = useCallback(() => {
+    if (isPlaying) {
+      if (playIntervalRef.current) { clearInterval(playIntervalRef.current); playIntervalRef.current = null; }
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+      playIntervalRef.current = setInterval(() => {
+        setTimeOffset(prev => { const n = prev + 1; return n > 24 ? -24 : n; });
+      }, 280);
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    return () => { if (playIntervalRef.current) clearInterval(playIntervalRef.current); };
+  }, []);
+
+  // ── Pointer handlers ─────────────────────────────────────────────
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDraggingRef.current = true;
     autoRotateRef.current = false;
-    previousMouseRef.current = { x: e.clientX, y: e.clientY };
+    prevMouseRef.current = { x: e.clientX, y: e.clientY };
     dragStartRef.current = { x: e.clientX, y: e.clientY };
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDraggingRef.current) return;
-    const dx = e.clientX - previousMouseRef.current.x;
-    const dy = e.clientY - previousMouseRef.current.y;
-    targetRotationRef.current.y += dx * 0.005;
-    targetRotationRef.current.x += dy * 0.005;
-    targetRotationRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotationRef.current.x));
-    previousMouseRef.current = { x: e.clientX, y: e.clientY };
+    const dx = e.clientX - prevMouseRef.current.x;
+    const dy = e.clientY - prevMouseRef.current.y;
+    targetRotRef.current.y += dx * 0.005;
+    targetRotRef.current.x += dy * 0.005;
+    targetRotRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotRef.current.x));
+    prevMouseRef.current = { x: e.clientX, y: e.clientY };
   }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     const dx = Math.abs(e.clientX - dragStartRef.current.x);
     const dy = Math.abs(e.clientY - dragStartRef.current.y);
     isDraggingRef.current = false;
-
-    if (dx < 4 && dy < 4) {
-      handleGlobeClick(e);
-    }
+    if (dx < 5 && dy < 5) handleGlobeClick(e);
   }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    targetZoomRef.current += e.deltaY * 0.003;
-    targetZoomRef.current = Math.max(3, Math.min(12, targetZoomRef.current));
+    targetZoomRef.current = Math.max(3, Math.min(12, targetZoomRef.current + e.deltaY * 0.003));
   }, []);
 
   const handleGlobeClick = useCallback((e: React.PointerEvent) => {
-    if (!canvasRef.current || !cameraRef.current || !globeRef.current || !sceneRef.current) return;
+    if (!canvasRef.current || !cameraRef.current || !globeRef.current) return;
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRef.current.getBoundingClientRect();
     const mouse = new THREE.Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
       -((e.clientY - rect.top) / rect.height) * 2 + 1
     );
-
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, cameraRef.current);
 
-    // Check PFZ markers first when PFZ layer is active
-    if (activeLayer === 'pfz' && pfzGroupRef.current && pfzGroupRef.current.visible) {
-      const pfzHits = raycaster.intersectObjects(pfzGroupRef.current.children);
-      if (pfzHits.length > 0) {
-        const pfzData = pfzHits[0].object.userData as PfzMarkerData;
-        setSelectedPfz(pfzData);
-        setSelectedPoint(null);
-        setLocationData(null);
+    // PFZ hit first
+    if (activeLayer === 'pfz' && pfzGroupRef.current?.visible) {
+      const hits = raycaster.intersectObjects(pfzGroupRef.current.children);
+      if (hits.length > 0) {
+        setSelectedPfz(hits[0].object.userData as PfzMarkerData);
+        setSelectedPoint(null); setLocationData(null);
         return;
       }
     }
 
-    // Check globe intersection
+    // Globe hit
     const hits = raycaster.intersectObject(globeRef.current);
-    if (hits.length > 0) {
-      const point = hits[0].point;
-      const localPoint = globeRef.current.worldToLocal(point.clone());
-      const { lat, lng } = vector3ToLatLng(localPoint);
+    if (hits.length === 0) return;
 
-      // Place selected marker
-      if (markerGroupRef.current) {
-        if (selectedMarkerRef.current) {
-          markerGroupRef.current.remove(selectedMarkerRef.current);
-          (selectedMarkerRef.current.geometry as THREE.BufferGeometry).dispose();
-          ((selectedMarkerRef.current.material as THREE.Material)).dispose();
-        }
-        const markerGeom = new THREE.SphereGeometry(0.035, 16, 12);
-        const markerMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-        const marker = new THREE.Mesh(markerGeom, markerMat);
-        const markerPos = latLngToVector3(lat, lng, MARKER_RADIUS + 0.01);
-        marker.position.copy(markerPos);
-        markerGroupRef.current.add(marker);
-        selectedMarkerRef.current = marker;
+    const local = globeRef.current.worldToLocal(hits[0].point.clone());
+    const { lat, lng } = vector3ToLatLng(local);
+
+    // Place marker
+    if (markerGroupRef.current) {
+      // Remove old
+      if (selectedMarkerRef.current) {
+        (selectedMarkerRef.current.geometry as any).dispose();
+        (selectedMarkerRef.current.material as THREE.Material).dispose();
+        markerGroupRef.current.remove(selectedMarkerRef.current);
       }
-
-      setSelectedPoint({ lat, lng, screenX: e.clientX, screenY: e.clientY });
-      setSelectedPfz(null);
-      setAnalysisResult({ loading: false });
-
-      // Fetch location data
-      setLocationLoading(true);
-      setLocationData(null);
-      fetchMarineLocation(lat, lng).then(data => {
-        setLocationData(data);
-        setLocationLoading(false);
-      }).catch(() => setLocationLoading(false));
+      if (selectedGlowRef.current) {
+        (selectedGlowRef.current.geometry as any).dispose();
+        (selectedGlowRef.current.material as THREE.Material).dispose();
+        markerGroupRef.current.remove(selectedGlowRef.current);
+      }
+      const pos = latLngToVector3(lat, lng, MARKER_RADIUS + 0.01);
+      // Core pin
+      const pinGeom = new THREE.SphereGeometry(0.038, 16, 12);
+      const pinMat = new THREE.MeshBasicMaterial({ color: 0x00e8ff });
+      const pin = new THREE.Mesh(pinGeom, pinMat);
+      pin.position.copy(pos);
+      markerGroupRef.current.add(pin);
+      selectedMarkerRef.current = pin;
+      // Glow halo
+      const glowGeom = new THREE.SphereGeometry(0.12, 16, 12);
+      const glowMat = new THREE.MeshBasicMaterial({ color: 0x00e8ff, transparent: true, opacity: 0.15 });
+      const glow = new THREE.Mesh(glowGeom, glowMat);
+      glow.position.copy(pos);
+      markerGroupRef.current.add(glow);
+      selectedGlowRef.current = glow;
     }
-  }, [activeLayer]);
+
+    setSelectedPoint({ lat, lng });
+    setSelectedPfz(null);
+    setAnalysisResult({ loading: false });
+    setLocationLoading(true);
+    setLocationData(null);
+
+    // Merge API data with generated extended fields
+    const generated = generateMarineData(lat, lng, timeOffset);
+    fetchMarineLocation(lat, lng)
+      .then((apiData: any) => {
+        setDataStatus(apiData?.dataStatus === 'LIVE' ? 'LIVE' : 'SIMULATED');
+        const merged: ExtendedLocationData = {
+          ...apiData,
+          oxygen:    generated.oxygen,
+          ph:        generated.ph,
+          turbidity: generated.turbidity,
+          nitrate:   generated.nitrate,
+          sshMeters: generated.ssh,
+          dataStatus: apiData?.dataStatus,
+          sstSource:  apiData?.sstSource,
+          chlorophyllSource: apiData?.chlorophyllSource,
+          waveSource: apiData?.waveSource,
+        };
+        setLocationData(merged);
+        setLocationLoading(false);
+      })
+      .catch(() => {
+        // Fallback: build from generated data
+        setDataStatus('SIMULATED');
+        const fallback: ExtendedLocationData = {
+          locationName: `${lat.toFixed(3)}°N, ${lng.toFixed(3)}°E`,
+          latitude: lat, longitude: lng,
+          temperature: generated.sst, salinity: generated.sal,
+          chlorophyll: generated.chl, waveHeight: generated.waveH,
+          windSpeed: generated.wind, windDirection: 'NE',
+          currentSpeed: generated.cur, currentDirection: 'E',
+          precipitation: 0, seaLevelAnomaly: Math.round(generated.ssh * 100),
+          weatherCondition: 'Clear', marineRisk: generated.risk,
+          fishingSuitability: generated.suitability,
+          productivityIndicator: generated.productivity,
+          lastUpdated: new Date().toISOString(),
+          geofenceStatus: 'CLEAR',
+          oxygen: generated.oxygen, ph: generated.ph,
+          turbidity: generated.turbidity, nitrate: generated.nitrate,
+          sshMeters: generated.ssh, dataStatus: 'SIMULATED',
+        };
+        setLocationData(fallback);
+        setLocationLoading(false);
+      });
+  }, [activeLayer, timeOffset]);
 
   const handleAnalyzeLocation = useCallback(async () => {
-    if (!selectedPoint) return;
+    if (!selectedPoint || !locationData) return;
     setAnalysisResult({ loading: true });
     try {
       const result = await runAgentOrchestration(
-        `Analyze this ocean location and find fishing zones`,
+        `Analyze this ocean location for fishing and safety. SST: ${locationData.temperature}°C, Chl-a: ${locationData.chlorophyll} mg/m³, Waves: ${locationData.waveHeight}m, Wind: ${locationData.windSpeed} km/h`,
         'en',
         { lat: selectedPoint.lat, lng: selectedPoint.lng }
       );
-      setAnalysisResult({ loading: false, data: result });
+      setAnalysisResult({ loading: false, answer: result.answer });
     } catch (err: any) {
       setAnalysisResult({ loading: false, error: err?.message || 'Analysis failed' });
     }
-  }, [selectedPoint]);
+  }, [selectedPoint, locationData]);
 
-  const handleZoomIn = () => { targetZoomRef.current = Math.max(3, targetZoomRef.current - 1); };
+  const handleZoomIn  = () => { targetZoomRef.current = Math.max(3, targetZoomRef.current - 1); };
   const handleZoomOut = () => { targetZoomRef.current = Math.min(12, targetZoomRef.current + 1); };
-
-  const handleReset = () => {
-    targetRotationRef.current = { x: 0.3, y: -1.4 };
+  const handleReset   = () => {
+    targetRotRef.current = { x: 0.3, y: -1.4 };
     targetZoomRef.current = 5.5;
     autoRotateRef.current = true;
-    setSelectedPoint(null);
-    setLocationData(null);
-    setAnalysisResult({ loading: false });
-    setSelectedPfz(null);
-  };
-
-  const toggleFullScreen = () => {
-    if (!containerRef.current) return;
-    if (!isFullScreen) {
-      containerRef.current.requestFullscreen?.().catch(() => {});
-      setIsFullScreen(true);
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-      setIsFullScreen(false);
-      onCloseFullScreen?.();
+    setSelectedPoint(null); setLocationData(null);
+    setSelectedPfz(null); setAnalysisResult({ loading: false });
+    if (markerGroupRef.current) {
+      while (markerGroupRef.current.children.length > 0) {
+        const c = markerGroupRef.current.children[0] as THREE.Mesh;
+        c.geometry?.dispose(); (c.material as THREE.Material).dispose();
+        markerGroupRef.current.remove(c);
+      }
+      selectedMarkerRef.current = null;
+      selectedGlowRef.current = null;
     }
   };
-
+  const toggleFullScreen = () => {
+    if (!containerRef.current) return;
+    if (!isFullScreen) { containerRef.current.requestFullscreen?.().catch(() => {}); setIsFullScreen(true); }
+    else { document.exitFullscreen?.().catch(() => {}); setIsFullScreen(false); onCloseFullScreen?.(); }
+  };
   useEffect(() => {
-    const handleFsChange = () => setIsFullScreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    const onChange = () => setIsFullScreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
 
-  // Get current value to display for the selected location
-  const getLayerValue = (): { value: string; label: string } | null => {
+  // ── Voice analysis ────────────────────────────────────────────────
+  const handleVoiceAnalysis = useCallback(() => {
+    const query = selectedPoint
+      ? `Analyze ocean at ${selectedPoint.lat.toFixed(3)}°${selectedPoint.lat >= 0 ? 'N' : 'S'}, ${selectedPoint.lng.toFixed(3)}°${selectedPoint.lng >= 0 ? 'E' : 'W'}. SST: ${locationData?.temperature ?? '?'}°C, Chl-a: ${locationData?.chlorophyll ?? '?'} mg/m³, Waves: ${locationData?.waveHeight ?? '?'}m. Active layer: ${currentLayerDef.label}. Is this good for fishing and is it safe?`
+      : `Analyze ocean conditions around India, Bay of Bengal, and Arabian Sea. Current layer: ${currentLayerDef.label}`;
+    onOpenVoiceModal?.(query);
+  }, [selectedPoint, locationData, currentLayerDef, onOpenVoiceModal]);
+
+  // ── Helpers ───────────────────────────────────────────────────────
+  const getLayerValue = () => {
     if (!locationData) return null;
-    const layer = currentLayerDef;
-    switch (layer.id) {
-      case 'sst': return { value: `${locationData.temperature} ${layer.unit}`, label: 'Sea Surface Temperature' };
-      case 'chlorophyll': return { value: `${locationData.chlorophyll} ${layer.unit}`, label: 'Chlorophyll-a' };
-      case 'salinity': return { value: `${locationData.salinity} ${layer.unit}`, label: 'Salinity' };
-      case 'waveHeight': return { value: `${locationData.waveHeight} ${layer.unit}`, label: 'Sig. Wave Height' };
-      case 'wind': return { value: `${locationData.windSpeed} ${layer.unit}`, label: 'Wind Speed' };
-      case 'current': return { value: `${locationData.currentSpeed} ${layer.unit}`, label: 'Current Speed' };
-      case 'bathymetry': return { value: 'N/A — Not Connected', label: 'Depth (GEBCO not integrated)' };
-      case 'pfz': return null;
+    switch (activeLayer) {
+      case 'sst':        return { v: `${locationData.temperature}°C`, lbl: 'SST' };
+      case 'chlorophyll':return { v: `${locationData.chlorophyll} mg/m³`, lbl: 'Chl-a' };
+      case 'salinity':   return { v: `${locationData.salinity} PSU`, lbl: 'Salinity' };
+      case 'oxygen':     return { v: `${locationData.oxygen ?? '--'} mg/L`, lbl: 'Dissolved O₂' };
+      case 'current':    return { v: `${locationData.currentSpeed} m/s`, lbl: 'Current Speed' };
+      case 'ssh':        return { v: `${locationData.sshMeters ?? (locationData.seaLevelAnomaly / 100).toFixed(2)} m`, lbl: 'SSH Anomaly' };
+      case 'ph':         return { v: `${locationData.ph ?? '--'}`, lbl: 'pH Level' };
+      case 'turbidity':  return { v: `${locationData.turbidity ?? '--'} FTU`, lbl: 'Turbidity' };
+      case 'nitrate':    return { v: `${locationData.nitrate ?? '--'} mmol/m³`, lbl: 'Nitrate' };
       default: return null;
     }
   };
 
+  const riskColor = (risk?: string) =>
+    risk === 'LOW' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+    risk === 'MODERATE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+    risk === 'HIGH' || risk === 'CRITICAL' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+    'bg-white/10 text-white/50';
+
+  const suitabilityColor = (s?: string) =>
+    s === 'FAVOURABLE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+    s === 'MODERATE' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+    'bg-red-500/20 text-red-300 border border-red-500/30';
+
+  const layerVal = getLayerValue();
+  const displayDate = getDisplayDate(timeOffset);
+  const TIME_TICKS = [-24, -18, -12, -6, 0, 6, 12, 18, 24];
+
   // ═══════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════
-
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full bg-[#020810] overflow-hidden flex flex-col ${
-        isFullScreen ? 'fixed inset-0 z-50' : 'min-h-[600px]'
+      className={`relative w-full bg-[#020810] overflow-hidden flex flex-col font-mono ${
+        isFullScreen ? 'fixed inset-0 z-50' : 'h-full min-h-[600px]'
       }`}
     >
       {/* Loading */}
       {isLoading && (
-        <div className="absolute inset-0 z-40 bg-[#020810] flex flex-col items-center justify-center">
+        <div className="absolute inset-0 z-50 bg-[#020810] flex flex-col items-center justify-center">
           <Loader2 className="w-10 h-10 text-teal-400 animate-spin" />
-          <p className="mt-3 text-sm text-teal-300 font-mono">Initializing 3D Ocean Globe...</p>
+          <p className="mt-3 text-sm text-teal-300 font-mono tracking-wide">Initializing 3D Ocean Globe...</p>
+          <p className="mt-1 text-[10px] text-neutral-500 font-mono">MATSYA AI · Global Ocean Intelligence</p>
         </div>
       )}
 
-      {/* Top HUD */}
-      <div className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex items-center justify-between gap-2">
-        <div className="bg-black/85 backdrop-blur-md px-3 py-2 rounded-xl border border-white/15 shadow-xl pointer-events-auto flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300">
-            <Globe className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-white tracking-wide font-mono uppercase">MATSYA AI</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                {currentLayerDef.shortLabel}
-              </span>
-            </div>
-            <p className="text-[9px] text-neutral-400 font-mono">{currentLayerDef.label}</p>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="bg-black/85 backdrop-blur-md px-2 py-1.5 rounded-xl border border-white/15 shadow-xl pointer-events-auto flex items-center gap-1">
-          <button onClick={handleZoomIn} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white transition" title="Zoom In">
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={handleZoomOut} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white transition" title="Zoom Out">
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={handleReset} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white transition" title="Reset View">
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={toggleFullScreen} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white transition" title={isFullScreen ? 'Exit Fullscreen' : 'Fullscreen'}>
-            {isFullScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* ═══════ LAYER SELECTOR PANEL ═══════ */}
-      <div className={`absolute top-14 left-3 z-30 transition-all duration-200 ${layerPanelOpen ? 'w-44' : 'w-9'}`}>
-        {!layerPanelOpen ? (
-          <button
-            onClick={() => setLayerPanelOpen(true)}
-            className="w-9 h-9 rounded-lg bg-black/85 backdrop-blur-md border border-white/15 flex items-center justify-center text-teal-300 hover:text-white hover:border-teal-500/50 transition shadow-xl"
-            title="Open Layers"
-          >
-            <Layers className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="bg-black/90 backdrop-blur-xl border border-white/15 rounded-xl shadow-2xl overflow-hidden">
-            {/* Panel Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-              <span className="text-[9px] font-mono font-bold text-teal-300 uppercase tracking-wider">Ocean Layers</span>
-              <button onClick={() => setLayerPanelOpen(false)} className="text-neutral-500 hover:text-white transition">
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-
-            {/* Layer Buttons */}
-            <div className="p-1.5 space-y-0.5 max-h-[60vh] overflow-y-auto">
-              {OCEAN_LAYERS.map(layer => (
-                <button
-                  key={layer.id}
-                  onClick={() => setActiveLayer(layer.id)}
-                  className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition text-[11px] font-mono ${
-                    activeLayer === layer.id
-                      ? 'bg-teal-600/30 text-teal-200 border border-teal-500/40'
-                      : 'text-neutral-300 hover:bg-white/10 hover:text-white border border-transparent'
-                  } ${!layer.apiAvailable ? 'opacity-60' : ''}`}
-                >
-                  <span className={activeLayer === layer.id ? 'text-teal-300' : 'text-neutral-500'}>{layer.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold truncate">{layer.shortLabel}</div>
-                    {!layer.apiAvailable && (
-                      <div className="text-[8px] text-amber-400/80 truncate">Not connected</div>
-                    )}
-                  </div>
-                  {activeLayer === layer.id && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0"></span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Data Source */}
-            <div className="px-3 py-2 border-t border-white/10 text-[8px] text-neutral-500 font-mono">
-              {currentLayerDef.dataSource}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Three.js Canvas */}
+      {/* ──── THREE.JS CANVAS ──── */}
       <canvas
         ref={canvasRef}
-        className="w-full h-full flex-1 cursor-grab active:cursor-grabbing touch-none"
+        className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing touch-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onWheel={handleWheel}
       />
 
-      {/* ═══════ LEGEND ═══════ */}
-      <div className="absolute bottom-4 right-4 z-20 pointer-events-none">
-        {activeLayer === 'pfz' && pfzMarkers.length > 0 ? (
-          <div className="bg-black/80 backdrop-blur-sm px-3 py-2.5 rounded-lg border border-white/10 text-[9px] font-mono text-neutral-300 space-y-1">
-            <div className="text-teal-300 font-bold uppercase mb-1.5">PFZ Probability</div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span>High (&gt;70%)</div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>Medium (40-70%)</div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>Low (&lt;40%)</div>
-            <div className="text-neutral-500 mt-1.5 text-[8px]">{pfzMarkers.length} ML predictions loaded</div>
-          </div>
-        ) : (
-          <div className="bg-black/80 backdrop-blur-sm px-3 py-2.5 rounded-lg border border-white/10 text-[9px] font-mono text-neutral-300">
-            <div className="text-teal-300 font-bold uppercase mb-1.5">{currentLayerDef.shortLabel} ({currentLayerDef.unit})</div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-32 h-2.5 rounded-sm overflow-hidden flex">
-                {currentLayerDef.colorStops.map((stop, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-full"
-                    style={{ backgroundColor: `rgb(${stop.color[0]}, ${stop.color[1]}, ${stop.color[2]})` }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-between mt-1 text-[8px] text-neutral-400">
-              <span>{currentLayerDef.legendLabels[0]}</span>
-              <span>{currentLayerDef.legendLabels[Math.floor(currentLayerDef.legendLabels.length / 2)]}</span>
-              <span>{currentLayerDef.legendLabels[currentLayerDef.legendLabels.length - 1]}</span>
-            </div>
-            {!currentLayerDef.apiAvailable && (
-              <div className="text-amber-400/80 mt-1 text-[8px]">Layer not connected to live data</div>
-            )}
-          </div>
-        )}
-      </div>
+      {/* ──── UI OVERLAY ──── */}
+      <div className="absolute inset-0 z-10 pointer-events-none flex flex-col select-none">
 
-      {/* ═══════ SELECTED LOCATION INFO CARD ═══════ */}
-      {selectedPoint && (
-        <div className="absolute bottom-4 left-3 z-30 max-w-[280px]">
-          <div className="bg-black/92 backdrop-blur-xl border border-white/15 rounded-xl p-3.5 shadow-2xl text-white space-y-2.5">
+        {/* ═══ 3-COLUMN MAIN AREA ═══ */}
+        <div className="flex flex-1 min-h-0">
+
+          {/* ─── LEFT PANEL: OCEAN DATA LAYERS ─────────────────── */}
+          <div className="pointer-events-auto w-[258px] shrink-0 h-full bg-black/82 backdrop-blur-xl border-r border-white/10 flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <div className="flex items-center gap-1.5">
-                <Crosshair className="w-3 h-3 text-teal-400" />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-teal-300">
-                  {currentLayerDef.shortLabel} DATA
-                </span>
-              </div>
-              <button onClick={() => { setSelectedPoint(null); setLocationData(null); setAnalysisResult({ loading: false }); }} className="text-neutral-500 hover:text-white">
-                <X className="w-3 h-3" />
-              </button>
+            <div className="px-4 py-3 border-b border-white/10 shrink-0">
+              <span className="text-[9px] font-mono font-bold text-white/50 uppercase tracking-[0.2em]">
+                Ocean Data Layers
+              </span>
             </div>
 
-            {/* Coordinates */}
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono bg-white/5 p-2 rounded-lg border border-white/5">
-              <div>
-                <span className="text-[8px] text-neutral-500 uppercase block">Lat</span>
-                <span className="text-white font-bold">{selectedPoint.lat.toFixed(4)}°{selectedPoint.lat >= 0 ? 'N' : 'S'}</span>
-              </div>
-              <div>
-                <span className="text-[8px] text-neutral-500 uppercase block">Lng</span>
-                <span className="text-white font-bold">{selectedPoint.lng.toFixed(4)}°{selectedPoint.lng >= 0 ? 'E' : 'W'}</span>
-              </div>
-            </div>
-
-            {/* Loading */}
-            {locationLoading && (
-              <div className="flex items-center gap-2 text-[10px] text-neutral-400">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Fetching data...</span>
-              </div>
-            )}
-
-            {/* Layer-specific value (primary display) */}
-            {locationData && !locationLoading && (
-              <>
-                {getLayerValue() && (
-                  <div className="p-2.5 rounded-lg bg-teal-900/20 border border-teal-500/20">
-                    <span className="text-[8px] text-teal-400 uppercase block font-mono font-bold">{getLayerValue()!.label}</span>
-                    <span className="text-lg font-bold text-white font-mono">{getLayerValue()!.value}</span>
-                    {activeLayer === 'wind' && locationData.windDirection && (
-                      <span className="text-[9px] text-neutral-400 font-mono ml-2">Dir: {locationData.windDirection}</span>
-                    )}
-                    {activeLayer === 'current' && locationData.currentDirection && (
-                      <span className="text-[9px] text-neutral-400 font-mono ml-2">Dir: {locationData.currentDirection}</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Secondary data */}
-                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                  {activeLayer !== 'sst' && (
-                    <div className="p-1.5 rounded bg-white/5 border border-white/5">
-                      <span className="text-[8px] text-neutral-500 block font-mono">SST</span>
-                      <span className="text-rose-400 font-bold font-mono">{locationData.temperature}°C</span>
-                    </div>
-                  )}
-                  {activeLayer !== 'waveHeight' && (
-                    <div className="p-1.5 rounded bg-white/5 border border-white/5">
-                      <span className="text-[8px] text-neutral-500 block font-mono">Waves</span>
-                      <span className="text-sky-300 font-bold font-mono">{locationData.waveHeight}m</span>
-                    </div>
-                  )}
-                  {activeLayer !== 'chlorophyll' && activeLayer !== 'pfz' && (
-                    <div className="p-1.5 rounded bg-white/5 border border-white/5">
-                      <span className="text-[8px] text-neutral-500 block font-mono">Chl-a</span>
-                      <span className="text-emerald-400 font-bold font-mono">{locationData.chlorophyll} mg/m³</span>
-                    </div>
-                  )}
-                  {activeLayer !== 'wind' && (
-                    <div className="p-1.5 rounded bg-white/5 border border-white/5">
-                      <span className="text-[8px] text-neutral-500 block font-mono">Wind</span>
-                      <span className="text-sky-400 font-bold font-mono">{locationData.windSpeed} km/h</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Risk & provenance */}
-                <div className="flex items-center gap-2 flex-wrap text-[9px] font-mono">
-                  <span className={`px-1.5 py-0.5 rounded ${locationData.marineRisk === 'LOW' ? 'bg-emerald-500/20 text-emerald-300' : locationData.marineRisk === 'MODERATE' ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300'}`}>
-                    {locationData.marineRisk}
+            {/* Layer list */}
+            <div className="flex-1 overflow-y-auto py-1 scrollbar-hide">
+              {OCEAN_LAYERS.filter(l => l.id !== 'pfz').map(layer => (
+                <button
+                  key={layer.id}
+                  onClick={() => setActiveLayer(layer.id)}
+                  className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all border-l-2 ${
+                    activeLayer === layer.id
+                      ? 'bg-teal-600/12 border-teal-400 text-white'
+                      : 'border-transparent text-neutral-400 hover:bg-white/6 hover:text-neutral-200'
+                  }`}
+                >
+                  {/* Icon slot */}
+                  <span className={`mt-0.5 shrink-0 w-4 ${activeLayer === layer.id ? 'text-teal-300' : 'text-neutral-500'}`}>
+                    {layer.icon}
                   </span>
-                  {locationData.dataStatus && (
-                    <span className={`px-1.5 py-0.5 rounded font-bold ${
-                      locationData.dataStatus === 'LIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                      locationData.dataStatus === 'CACHED' ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' :
-                      'bg-neutral-500/20 text-neutral-400 border border-neutral-500/30'
-                    }`}>
-                      {locationData.dataStatus}
-                    </span>
-                  )}
-                </div>
-                <div className="text-[8px] text-neutral-500 font-mono leading-relaxed mt-1">
-                  {activeLayer === 'sst' && locationData.sstSource && (
-                    <span>{locationData.sstSource}</span>
-                  )}
-                  {activeLayer === 'chlorophyll' && locationData.chlorophyllSource && (
-                    <span>{locationData.chlorophyllSource}{locationData.chlorophyllStatus === 'HISTORICAL' ? ' (historical)' : ''}</span>
-                  )}
-                  {activeLayer === 'salinity' && (
-                    <span className="text-amber-500/80">Physics model — no free real-time salinity API</span>
-                  )}
-                  {(activeLayer === 'waveHeight' || activeLayer === 'current') && locationData.waveSource && (
-                    <span>{locationData.waveSource}</span>
-                  )}
-                  {activeLayer === 'wind' && (
-                    <span>Estimated from marine wave data</span>
-                  )}
-                  {activeLayer === 'bathymetry' && (
-                    <span className="text-amber-500/80">Depth data not connected — requires GEBCO integration</span>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Analyze Button */}
-            {locationData && (
-              <button
-                onClick={handleAnalyzeLocation}
-                disabled={analysisResult.loading}
-                className="w-full py-1.5 bg-teal-600 hover:bg-teal-500 disabled:bg-teal-800 disabled:cursor-not-allowed text-white font-bold text-[10px] rounded-lg shadow-lg transition flex items-center justify-center gap-1.5 uppercase font-mono tracking-wider cursor-pointer"
-              >
-                {analysisResult.loading ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /><span>Analyzing...</span></>
-                ) : (
-                  <><Sparkles className="w-3 h-3 text-teal-200" /><span>4-Agent Analysis</span></>
-                )}
-              </button>
-            )}
-
-            {/* Analysis Result */}
-            {analysisResult.data && (
-              <div className="p-2.5 bg-teal-900/20 border border-teal-500/20 rounded-lg text-[10px] space-y-1.5 max-h-36 overflow-y-auto">
-                <p className="text-white/90 leading-relaxed">{analysisResult.data.answer?.slice(0, 250) || 'No answer.'}</p>
-                {analysisResult.data.detectedIntent && (
-                  <div className="text-[8px] text-teal-400 font-mono">
-                    {analysisResult.data.detectedIntent} | {analysisResult.data.confidence}%
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold leading-tight truncate">{layer.label}</div>
+                    <div className="text-[9px] text-neutral-500 mt-0.5">
+                      {layer.unit ? `${layer.unit} • ` : ''}{layer.sublabel}
+                    </div>
+                    <div className="text-[8px] text-neutral-600 mt-0.5 truncate">
+                      {layer.isSimulated ? (
+                        <span className="text-amber-600/70">SIMULATED DATA</span>
+                      ) : (
+                        <span className="text-neutral-600">Source: {layer.source.split('/')[0].trim()}</span>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-            {analysisResult.error && (
-              <div className="p-2 bg-red-900/20 border border-red-500/20 rounded-lg text-[10px] text-red-300 flex items-center gap-1.5">
-                <AlertTriangle className="w-3 h-3" />{analysisResult.error}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                  {activeLayer === layer.id && (
+                    <span className="ml-auto shrink-0 w-1.5 h-1.5 rounded-full bg-teal-400 mt-1.5" />
+                  )}
+                </button>
+              ))}
 
-      {/* ═══════ PFZ SELECTION PANEL ═══════ */}
-      {selectedPfz && (
-        <div className="absolute bottom-4 left-3 z-30 max-w-[280px]">
-          <div className="bg-black/92 backdrop-blur-xl border border-emerald-500/20 rounded-xl p-3.5 shadow-2xl text-white space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <div className="flex items-center gap-1.5">
-                <Fish className="w-3 h-3 text-emerald-400" />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-300">PFZ PREDICTION</span>
-              </div>
-              <button onClick={() => setSelectedPfz(null)} className="text-neutral-500 hover:text-white">
-                <X className="w-3 h-3" />
+              {/* PFZ separator */}
+              <div className="mx-3 my-1 border-t border-white/8" />
+              <button
+                onClick={() => setActiveLayer('pfz')}
+                className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all border-l-2 ${
+                  activeLayer === 'pfz'
+                    ? 'bg-emerald-600/12 border-emerald-400 text-white'
+                    : 'border-transparent text-neutral-400 hover:bg-white/6 hover:text-neutral-200'
+                }`}
+              >
+                <span className={`mt-0.5 shrink-0 w-4 ${activeLayer === 'pfz' ? 'text-emerald-300' : 'text-neutral-500'}`}>
+                  <Fish className="w-4 h-4" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold leading-tight">Potential Fishing Zones</div>
+                  <div className="text-[9px] text-neutral-500 mt-0.5">% • ML fishing probability</div>
+                  <div className="text-[8px] text-emerald-700/80 mt-0.5">ML RandomForest · INCOIS / ISRO</div>
+                </div>
+                {activeLayer === 'pfz' && <span className="ml-auto shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5" />}
+              </button>
+
+              {/* Compare Layers (decorative) */}
+              <div className="mx-3 my-1 border-t border-white/8" />
+              <button
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-neutral-600 hover:text-neutral-400 hover:bg-white/5 transition text-left"
+                onClick={() => alert('Compare Layers: select two layers to split-screen compare. Feature in progress.')}
+              >
+                <Layers className="w-4 h-4 shrink-0" />
+                <div>
+                  <div className="text-[11px] font-bold">Compare Layers</div>
+                  <div className="text-[8px] text-neutral-600">Split-view comparison</div>
+                </div>
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono bg-white/5 p-2 rounded-lg border border-white/5">
-              <div>
-                <span className="text-[8px] text-neutral-500 block">Lat</span>
-                <span className="text-white font-bold">{selectedPfz.latitude.toFixed(4)}°</span>
-              </div>
-              <div>
-                <span className="text-[8px] text-neutral-500 block">Lng</span>
-                <span className="text-white font-bold">{selectedPfz.longitude.toFixed(4)}°</span>
+            {/* Footer data source */}
+            <div className="px-4 py-2.5 border-t border-white/8 shrink-0 text-[8px] text-neutral-600 leading-relaxed">
+              {activeLayer === 'pfz' ? (
+                `${pfzMarkers.length} ML predictions loaded`
+              ) : (
+                currentLayerDef.source
+              )}
+            </div>
+          </div>
+
+          {/* ─── CENTER: transparent globe area ──────────────── */}
+          <div className="flex-1 relative">
+            {/* Layer name HUD – top center */}
+            <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 z-20">
+              <div className="bg-black/80 backdrop-blur-md px-4 py-2 rounded-xl border border-white/12 shadow-xl flex items-center gap-3 whitespace-nowrap">
+                <span className={activeLayer === 'pfz' ? 'text-emerald-400' : 'text-teal-400'}>
+                  {currentLayerDef.icon}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-white">{currentLayerDef.label}</span>
+                    {currentLayerDef.isSimulated ? (
+                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">SIMULATED</span>
+                    ) : (
+                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                        {dataStatus === 'LIVE' ? 'LIVE' : 'CACHED'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-neutral-500">{displayDate}</div>
+                </div>
               </div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-emerald-900/20 border border-emerald-500/20">
-              <span className="text-[8px] text-emerald-400 uppercase block font-mono font-bold">PFZ Probability</span>
-              <span className="text-xl font-bold text-emerald-300 font-mono">{(selectedPfz.pfz_probability * 100).toFixed(0)}%</span>
+            {/* Map controls – top right */}
+            <div className="pointer-events-auto absolute top-3 right-3 z-20 flex items-center gap-1.5">
+              <button onClick={handleZoomIn}  className="w-8 h-8 rounded-lg bg-black/80 backdrop-blur-sm border border-white/12 flex items-center justify-center text-neutral-300 hover:text-white hover:bg-white/15 transition" title="Zoom In"><ZoomIn className="w-3.5 h-3.5" /></button>
+              <button onClick={handleZoomOut} className="w-8 h-8 rounded-lg bg-black/80 backdrop-blur-sm border border-white/12 flex items-center justify-center text-neutral-300 hover:text-white hover:bg-white/15 transition" title="Zoom Out"><ZoomOut className="w-3.5 h-3.5" /></button>
+              <button onClick={handleReset}   className="w-8 h-8 rounded-lg bg-black/80 backdrop-blur-sm border border-white/12 flex items-center justify-center text-neutral-300 hover:text-white hover:bg-white/15 transition" title="Reset View"><RotateCcw className="w-3.5 h-3.5" /></button>
+              <button onClick={toggleFullScreen} className="w-8 h-8 rounded-lg bg-black/80 backdrop-blur-sm border border-white/12 flex items-center justify-center text-neutral-300 hover:text-white hover:bg-white/15 transition" title={isFullScreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+                {isFullScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-              <div className="p-1.5 rounded bg-white/5 border border-white/5 text-center">
-                <span className="text-[8px] text-neutral-500 block font-mono">SST</span>
-                <span className="text-rose-400 font-bold font-mono">{selectedPfz.sst.toFixed(1)}°C</span>
+            {/* Voice analysis – bottom center of globe area */}
+            <div className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 z-20">
+              <button
+                onClick={handleVoiceAnalysis}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/75 backdrop-blur-md border border-teal-500/30 text-teal-300 hover:bg-teal-600/20 hover:border-teal-500/50 transition text-[10px] font-bold shadow-xl"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                MATSYA AI Voice Analysis
+              </button>
+            </div>
+
+            {/* Hint (when nothing selected) */}
+            {!selectedPoint && !selectedPfz && !isLoading && (
+              <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-20">
+                <div className="text-[9px] text-neutral-600 font-mono text-center">
+                  <MapPin className="w-3 h-3 inline mr-1 text-teal-600" />
+                  Drag to rotate · Scroll to zoom · Click ocean to inspect
+                </div>
               </div>
-              <div className="p-1.5 rounded bg-white/5 border border-white/5 text-center">
-                <span className="text-[8px] text-neutral-500 block font-mono">Chl-a</span>
-                <span className="text-emerald-400 font-bold font-mono">{selectedPfz.chlorophyll.toFixed(2)}</span>
+            )}
+          </div>
+
+          {/* ─── RIGHT PANEL: LEGEND + SELECTED LOCATION ───────── */}
+          <div className="pointer-events-auto w-[210px] shrink-0 h-full bg-black/82 backdrop-blur-xl border-l border-white/10 flex flex-col overflow-hidden">
+
+            {/* Color Legend */}
+            <div className="px-4 py-3 border-b border-white/10 shrink-0">
+              <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
+                {currentLayerDef.shortLabel}{currentLayerDef.unit ? ` (${currentLayerDef.unit})` : ''}
               </div>
-              <div className="p-1.5 rounded bg-white/5 border border-white/5 text-center">
-                <span className="text-[8px] text-neutral-500 block font-mono">Gradient</span>
-                <span className="text-amber-400 font-bold font-mono">{selectedPfz.sst_gradient.toFixed(3)}</span>
+              <div className="flex items-stretch gap-2">
+                {/* Gradient bar */}
+                <div
+                  className="w-4 rounded-sm shrink-0"
+                  style={{
+                    height: `${currentLayerDef.colorStops.length * 18}px`,
+                    background: `linear-gradient(to bottom, ${
+                      [...currentLayerDef.colorStops].reverse()
+                        .map(s => `rgb(${s.color[0]},${s.color[1]},${s.color[2]})`)
+                        .join(', ')
+                    })`,
+                  }}
+                />
+                {/* Labels */}
+                <div
+                  className="flex flex-col justify-between"
+                  style={{ height: `${currentLayerDef.colorStops.length * 18}px` }}
+                >
+                  {currentLayerDef.legendLabels.map((lbl, i) => (
+                    <span key={i} className="text-[9px] text-neutral-400 leading-none">{lbl}</span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="text-[8px] text-neutral-500 font-mono">
-              ML RandomForest | {selectedPfz.date || 'Cached'}
+            {/* Selected Location data */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+              {/* Loading */}
+              {locationLoading && (
+                <div className="px-4 py-4 flex flex-col items-center gap-2 text-neutral-500">
+                  <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                  <span className="text-[9px]">Fetching data...</span>
+                </div>
+              )}
+
+              {/* No selection */}
+              {!selectedPoint && !selectedPfz && !locationLoading && (
+                <div className="px-4 py-6 text-center text-[9px] text-neutral-600 leading-relaxed">
+                  Click any ocean point on the globe to inspect marine data
+                </div>
+              )}
+
+              {/* Selected ocean point */}
+              {selectedPoint && locationData && !locationLoading && (
+                <div className="px-4 py-3 space-y-2.5">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Selected Location</span>
+                    <button
+                      onClick={() => { setSelectedPoint(null); setLocationData(null); setAnalysisResult({ loading: false }); }}
+                      className="text-neutral-600 hover:text-white transition"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  {/* Coordinates */}
+                  <div className="space-y-0.5">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Lat</span>
+                      <span className="text-[11px] font-bold text-white">{selectedPoint.lat.toFixed(3)}°{selectedPoint.lat >= 0 ? 'N' : 'S'}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Lon</span>
+                      <span className="text-[11px] font-bold text-white">{selectedPoint.lng.toFixed(3)}°{selectedPoint.lng >= 0 ? 'E' : 'W'}</span>
+                    </div>
+                  </div>
+
+                  {/* Primary layer value */}
+                  {layerVal && (
+                    <div className="py-2 px-2.5 rounded-lg bg-teal-500/10 border border-teal-500/20">
+                      <div className="text-[8px] text-teal-400 uppercase font-bold">{layerVal.lbl}</div>
+                      <div className="text-lg font-bold text-white leading-tight">{layerVal.v}</div>
+                    </div>
+                  )}
+
+                  {/* All variables */}
+                  <div className="space-y-1">
+                    {activeLayer !== 'sst' && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[9px] text-neutral-500">SST</span>
+                        <span className="text-[10px] font-bold text-rose-400">{locationData.temperature} °C</span>
+                      </div>
+                    )}
+                    {activeLayer !== 'chlorophyll' && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[9px] text-neutral-500">Chl-a</span>
+                        <span className="text-[10px] font-bold text-emerald-400">{locationData.chlorophyll} mg/m³</span>
+                      </div>
+                    )}
+                    {activeLayer !== 'salinity' && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[9px] text-neutral-500">Salinity</span>
+                        <span className="text-[10px] font-bold text-sky-400">{locationData.salinity} PSU</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Waves</span>
+                      <span className="text-[10px] font-bold text-blue-300">{locationData.waveHeight} m</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Wind</span>
+                      <span className="text-[10px] font-bold text-sky-300">{locationData.windSpeed} km/h</span>
+                    </div>
+                    {locationData.oxygen !== undefined && activeLayer !== 'oxygen' && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[9px] text-neutral-500">O₂</span>
+                        <span className="text-[10px] font-bold text-cyan-300">{locationData.oxygen} mg/L</span>
+                      </div>
+                    )}
+                    {locationData.ph !== undefined && activeLayer !== 'ph' && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[9px] text-neutral-500">pH</span>
+                        <span className="text-[10px] font-bold text-purple-300">{locationData.ph}</span>
+                      </div>
+                    )}
+                    {locationData.nitrate !== undefined && activeLayer !== 'nitrate' && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[9px] text-neutral-500">NO₃</span>
+                        <span className="text-[10px] font-bold text-green-300">{locationData.nitrate} mmol/m³</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Risk + Fishing */}
+                  <div className="pt-1 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-neutral-500">Risk Level</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${riskColor(locationData.marineRisk)}`}>
+                        {locationData.marineRisk}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-neutral-500">Fishing</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${suitabilityColor(locationData.fishingSuitability)}`}>
+                        {locationData.fishingSuitability === 'FAVOURABLE' ? 'GOOD' :
+                         locationData.fishingSuitability === 'MODERATE' ? 'FAIR' : 'POOR'}
+                      </span>
+                    </div>
+                    {locationData.dataStatus && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-neutral-500">Data</span>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${
+                          locationData.dataStatus === 'LIVE' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/8 text-neutral-500'
+                        }`}>
+                          {locationData.dataStatus}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Analyze button */}
+                  <button
+                    onClick={handleAnalyzeLocation}
+                    disabled={analysisResult.loading}
+                    className="w-full py-2 rounded-lg bg-teal-600 hover:bg-teal-500 active:scale-95 disabled:bg-teal-900 disabled:opacity-60 text-white text-[10px] font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5 shadow-lg"
+                  >
+                    {analysisResult.loading
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Analyzing...</>
+                      : <><Sparkles className="w-3 h-3" /> Analyze This Location</>
+                    }
+                  </button>
+
+                  {/* AI result */}
+                  {analysisResult.answer && (
+                    <div className="p-2.5 rounded-lg bg-teal-900/15 border border-teal-500/20 text-[9px] text-white/80 leading-relaxed max-h-28 overflow-y-auto">
+                      {analysisResult.answer.slice(0, 320)}
+                      {analysisResult.answer.length > 320 && '…'}
+                    </div>
+                  )}
+                  {analysisResult.error && (
+                    <div className="flex items-center gap-1.5 text-[9px] text-red-400">
+                      <AlertTriangle className="w-3 h-3 shrink-0" />{analysisResult.error}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PFZ selection panel */}
+              {selectedPfz && !selectedPoint && (
+                <div className="px-4 py-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">PFZ Prediction</span>
+                    <button onClick={() => setSelectedPfz(null)} className="text-neutral-600 hover:text-white transition">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Lat</span>
+                      <span className="text-[11px] font-bold text-white">{selectedPfz.latitude.toFixed(4)}°</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Lon</span>
+                      <span className="text-[11px] font-bold text-white">{selectedPfz.longitude.toFixed(4)}°</span>
+                    </div>
+                  </div>
+                  <div className="py-2 px-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="text-[8px] text-emerald-400 uppercase font-bold">PFZ Probability</div>
+                    <div className="text-xl font-bold text-emerald-300">{(selectedPfz.pfz_probability * 100).toFixed(0)}%</div>
+                    <div className="text-[8px] text-emerald-500/70">
+                      {selectedPfz.pfz_probability > 0.7 ? 'HIGH POTENTIAL' : selectedPfz.pfz_probability > 0.4 ? 'MEDIUM POTENTIAL' : 'LOW POTENTIAL'}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">SST</span>
+                      <span className="text-[10px] font-bold text-rose-400">{selectedPfz.sst.toFixed(1)}°C</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Chl-a</span>
+                      <span className="text-[10px] font-bold text-emerald-400">{selectedPfz.chlorophyll.toFixed(2)} mg/m³</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Gradient</span>
+                      <span className="text-[10px] font-bold text-amber-400">{selectedPfz.sst_gradient.toFixed(4)}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[9px] text-neutral-500">Confidence</span>
+                      <span className="text-[10px] font-bold text-teal-300">{(selectedPfz.pfz_probability * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                  <div className="text-[8px] text-neutral-600">ML RandomForest · Source: INCOIS/ISRO · {selectedPfz.date || 'Cached'}</div>
+                  <button
+                    onClick={() => { onNavigate?.('fisherman'); }}
+                    className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[10px] font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5"
+                  >
+                    <Navigation className="w-3 h-3" /> Navigate
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Instructions (when no selection) */}
-      {!selectedPoint && !selectedPfz && !isLoading && (
-        <div className="absolute bottom-4 left-3 z-20 pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/10 text-[9px] font-mono text-neutral-500">
-            <MapPin className="w-3 h-3 inline mr-1 text-teal-400" />
-            Drag to rotate • Scroll to zoom • Click ocean to inspect
+        {/* ═══ BOTTOM TIME SLIDER ═══ */}
+        <div className="pointer-events-auto shrink-0 h-[72px] bg-black/90 backdrop-blur-xl border-t border-white/10 flex items-center px-4 gap-4">
+          {/* Play/Pause */}
+          <button
+            onClick={handlePlay}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition shrink-0 ${
+              isPlaying ? 'bg-teal-600 text-white' : 'bg-white/10 text-neutral-300 hover:bg-white/20'
+            }`}
+            title={isPlaying ? 'Pause' : 'Play time animation'}
+          >
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+          </button>
+
+          {/* Slider area */}
+          <div className="flex-1 flex flex-col gap-1">
+            {/* Date label */}
+            <div className="text-center text-[10px] font-mono text-neutral-400">{displayDate}</div>
+
+            {/* Range input */}
+            <div className="relative">
+              <input
+                type="range"
+                min={-24}
+                max={24}
+                step={1}
+                value={timeOffset}
+                onChange={e => { setTimeOffset(parseInt(e.target.value)); if (isPlaying) handlePlay(); }}
+                className="w-full h-1 bg-white/10 rounded-full accent-teal-400 cursor-pointer"
+                style={{ background: `linear-gradient(to right, rgba(20,184,166,0.4) ${((timeOffset + 24) / 48) * 100}%, rgba(255,255,255,0.1) ${((timeOffset + 24) / 48) * 100}%)` }}
+              />
+            </div>
+
+            {/* Tick labels */}
+            <div className="flex justify-between px-0.5">
+              {TIME_TICKS.map(h => (
+                <span
+                  key={h}
+                  className={`text-[8px] font-mono cursor-pointer transition select-none ${
+                    h === 0 ? 'text-teal-400 font-bold' :
+                    h === timeOffset ? 'text-white' : 'text-neutral-600 hover:text-neutral-400'
+                  }`}
+                  onClick={() => setTimeOffset(h)}
+                >
+                  {h === 0 ? 'Now' : h < 0 ? `${h}h` : `+${h}h`}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Calendar icon */}
+          <div className="shrink-0 text-neutral-600">
+            <Activity className="w-4 h-4" />
           </div>
         </div>
-      )}
+
+        {/* Scientific footer strip */}
+        <div className="pointer-events-auto shrink-0 px-4 py-1.5 bg-black/95 border-t border-white/6 flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 text-[8px] text-neutral-600 font-mono">
+          <span>Coord: WGS 84 / Spherical Geodesic Projection</span>
+          <span>Sensors: OCM-3 · OSCAT-3 · INSAT-3DR · Sentinel-3 · Jason-3</span>
+          <span className={currentLayerDef.isSimulated ? 'text-amber-600' : 'text-emerald-600'}>
+            {currentLayerDef.isSimulated ? 'SIMULATED DATA' : `DATA: ${dataStatus}`}
+          </span>
+        </div>
+      </div>
     </div>
   );
 };

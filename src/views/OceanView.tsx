@@ -1,21 +1,7 @@
-import React, { useState } from 'react';
-import { 
-  Globe, 
-  Layers, 
-  MapPin, 
-  Sparkles, 
-  Mic, 
-  Compass, 
-  Info, 
-  Download, 
-  Maximize2,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck
-} from 'lucide-react';
+import React from 'react';
+import { Globe, Mic, ShieldCheck } from 'lucide-react';
 import { GlobalOceanGlobe } from '../components/GlobalOceanGlobe';
 import { OceanVariable, MarineLocationData } from '../types/marine';
-import { COASTAL_REGIONS } from '../data/mockMarineData';
 
 interface OceanViewProps {
   onNavigate?: (view: string) => void;
@@ -30,67 +16,54 @@ export const OceanView: React.FC<OceanViewProps> = ({
   onAskOrca,
   onAskMatsya,
   onOpenVoiceModal,
-  initialVariable = 'chlorophyll',
+  initialVariable = 'temperature',
 }) => {
-  const [selectedVar, setSelectedVar] = useState<OceanVariable>(initialVariable);
-
   const handleAsk = (loc: MarineLocationData, v: OceanVariable) => {
-    const formattedQuery = `Analyze the selected ocean location:
-Latitude: ${loc.latitude.toFixed(4)}
-Longitude: ${loc.longitude.toFixed(4)}
-SST: ${loc.temperature} °C
-Salinity: ${loc.salinity} PSU
-Wave Height: ${loc.waveHeight} m
-Chlorophyll: ${loc.chlorophyll} mg/m³`;
-
-    if (onAskMatsya) {
-      onAskMatsya(loc, v);
-    } else if (onAskOrca) {
-      onAskOrca(loc, v);
-    } else {
-      onOpenVoiceModal(formattedQuery);
-    }
+    const query = `Analyze ocean location at ${loc.latitude.toFixed(4)}°N, ${loc.longitude.toFixed(4)}°E — SST: ${loc.temperature}°C, Chl-a: ${loc.chlorophyll} mg/m³, Salinity: ${loc.salinity} PSU, Waves: ${loc.waveHeight}m, Wind: ${loc.windSpeed} km/h`;
+    if (onAskMatsya) onAskMatsya(loc, v);
+    else if (onAskOrca) onAskOrca(loc, v);
+    else onOpenVoiceModal(query);
   };
 
   return (
-    <div className="bg-white min-h-[calc(100vh-4rem)] flex flex-col text-[#111111]">
-      
-      {/* Top Scientific Toolbar */}
-      <div className="bg-[#F7F7F5] border-b border-[#E5E5E5] px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="bg-[#020810] min-h-[calc(100vh-4rem)] flex flex-col text-white">
+
+      {/* ── Dark scientific header ── */}
+      <div className="bg-[#020d1a] border-b border-white/8 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#111111] text-white flex items-center justify-center font-bold">
-            <Globe className="w-4 h-4 text-teal-400" />
+          <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+            <Globe className="w-3.5 h-3.5 text-teal-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-sm tracking-tight text-[#111111] uppercase font-mono">
-                MATSYA AI — Global 3D Ocean GIS
+              <h1 className="font-bold text-[11px] tracking-widest text-white uppercase font-mono">
+                MATSYA AI — GLOBAL 3D OCEAN GIS
               </h1>
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                LIVE ORBIT INGESTION
+              <span className="text-[8px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                LIVE DATA
               </span>
             </div>
-            <p className="text-[11px] text-[#666666]">
-              Interactive Scientific Earth • Multi-spectral spatial resolution calibrated to Copernicus Marine & ISRO Oceansat-3
+            <p className="text-[9px] text-neutral-500 font-mono">
+              Multi-spectral ocean variables · Real-time from Copernicus Marine, NASA, INCOIS &amp; Open-Meteo
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onOpenVoiceModal('Analyze the current chlorophyll, temperature, and current conditions across Indian coastline and global oceans')}
-            className="px-3 py-1.5 bg-[#111111] hover:bg-black text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition shadow-xs"
-          >
-            <Mic className="w-3.5 h-3.5 text-teal-400" />
-            <span>MATSYA AI Voice Analysis</span>
-          </button>
-        </div>
+        <button
+          onClick={() => onOpenVoiceModal(
+            'Analyze the current chlorophyll, sea surface temperature, and ocean current conditions across the Indian Ocean, Bay of Bengal, and Arabian Sea'
+          )}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-600/20 hover:bg-teal-600/30 border border-teal-500/30 text-teal-300 text-[10px] font-bold font-mono transition whitespace-nowrap"
+        >
+          <Mic className="w-3.5 h-3.5" />
+          MATSYA AI Voice Analysis
+        </button>
       </div>
 
-      {/* Main 3D Interactive Container */}
-      <div className="flex-1 relative w-full h-[calc(100vh-10rem)] min-h-[580px] bg-[#111111]">
-        <GlobalOceanGlobe 
-          initialVariable={selectedVar}
+      {/* ── Globe (fills remaining space) ── */}
+      <div className="flex-1 relative w-full bg-[#020810]" style={{ minHeight: 'calc(100vh - 8rem)' }}>
+        <GlobalOceanGlobe
+          initialVariable={initialVariable}
           onAskMatsya={(loc, v) => handleAsk(loc, v)}
           onAskOrca={(loc, v) => handleAsk(loc, v)}
           onOpenVoiceModal={onOpenVoiceModal}
@@ -98,20 +71,6 @@ Chlorophyll: ${loc.chlorophyll} mg/m³`;
           isFullScreenDefault={false}
         />
       </div>
-
-      {/* Explanatory Scientific Strip at Bottom */}
-      <div className="bg-white border-t border-[#E5E5E5] px-4 sm:px-6 py-3 text-xs text-[#555555] flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 font-mono text-[11px]">
-          <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-          <span>Coordinate Reference: WGS 84 / World Mercator & Spherical Geodesic Projection</span>
-        </div>
-        <div className="flex items-center gap-4 text-[11px]">
-          <span className="font-mono">Sensor: OCM-3, OSCAT-3, INSAT-3DR Imager/Sounder</span>
-          <span className="text-[#CCCCCC]">|</span>
-          <span className="text-teal-800 font-bold">Accuracy: ±0.15°C SST / ±0.08 mg/m³ Chl-a</span>
-        </div>
-      </div>
-
     </div>
   );
 };
