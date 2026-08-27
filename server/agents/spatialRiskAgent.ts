@@ -18,14 +18,14 @@ export interface SpatialRiskResult {
 }
 
 export class SpatialRiskAgent {
-  public analyze(params: {
+  public async analyze(params: {
     lat: number;
     lng: number;
     needsRoute: boolean;
     destinationLat?: number;
     destinationLng?: number;
     destinationName?: string;
-  }): SpatialRiskResult {
+  }): Promise<SpatialRiskResult> {
     const t0 = Date.now();
     const { lat, lng, needsRoute } = params;
 
@@ -46,7 +46,7 @@ export class SpatialRiskAgent {
     // --- Route Planning (A* deterministic pathfinding) ---
     let route: WeatherSafeRoutePlan | undefined;
     if (needsRoute && params.destinationLat && params.destinationLng) {
-      route = globalWeatherSafetyAgent.calculateRoute({
+      route = await globalWeatherSafetyAgent.calculateRoute({
         originLat: lat,
         originLng: lng,
         originName: 'Current Position',

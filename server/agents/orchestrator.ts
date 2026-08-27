@@ -132,7 +132,7 @@ export class MultiAgentOrchestrator {
       const t1 = Date.now();
       const dest = marineResult?.pfz?.pfzCandidates[0];
 
-      spatialResult = spatialRiskAgent.analyze({
+      spatialResult = await spatialRiskAgent.analyze({
         lat, lng,
         needsRoute: plan.needsRoute,
         destinationLat: dest?.latitude,

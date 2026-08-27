@@ -398,7 +398,7 @@ app.post('/api/geofence/monitor', (req, res) => {
 });
 
 // 9. WEATHER-SAFE ROUTING ENDPOINT
-app.post('/api/route/safe', (req, res) => {
+app.post('/api/route/safe', async (req, res) => {
   const {
     originLat = 13.0827,
     originLng = 80.2707,
@@ -409,7 +409,7 @@ app.post('/api/route/safe', (req, res) => {
     vesselSpeedKnots = 12,
   } = req.body;
 
-  const routePlan = globalWeatherSafetyAgent.calculateRoute({
+  const routePlan = await globalWeatherSafetyAgent.calculateRoute({
     originLat, originLng, originName,
     destinationLat, destinationLng, destinationName,
     vesselSpeedKnots,

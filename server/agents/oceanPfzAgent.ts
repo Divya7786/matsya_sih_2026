@@ -172,7 +172,7 @@ export class OceanPfzAgent {
       const locations = candidates.map(c => ({
         sst: c.sst,
         sst_gradient: c.gradient,
-        chlorophyll: c.chl > 0 ? c.chl : 0.3, // use 0.3 as Bay of Bengal baseline only if no real CHL
+        chlorophyll: c.chl,  // 0 if unavailable — ML will correctly predict NOT_PFZ
         latitude: c.lat,
         longitude: c.lng,
       }));
@@ -348,7 +348,7 @@ export class OceanPfzAgent {
     mlResults: { pfz_prediction: boolean; confidence: number }[],
     candidates: { lat: number; lng: number; sst: number; gradient: number; chl: number }[],
     originLat: number, originLng: number, radius: number, locName: string,
-    liveWaveHeight: number = 0.9, liveWindSpeed: number = 14,
+    liveWaveHeight: number = 0, liveWindSpeed: number = 0,
   ): OceanPfzAnalysisResult {
     const dirNames = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
     const now = new Date();
@@ -439,11 +439,8 @@ export class OceanPfzAgent {
   private buildFromMLPredictions(
     features: any[], metadata: any | null,
     originLat: number, originLng: number, radius: number, locName: string,
-    liveWaveHeight?: number, liveWindSpeed?: number,
   ): OceanPfzAnalysisResult {
-    const isBayOfBengal = originLat >= 8 && originLat <= 22 && originLng >= 80 && originLng <= 95;
-    const estimatedWave = liveWaveHeight ?? Math.round((isBayOfBengal ? 0.85 : 1.35) * 10) / 10;
-    const estimatedWind = liveWindSpeed ?? (isBayOfBengal ? 14 : 20);
+    // HISTORICAL GeoJSON path — no live wave/wind data available
     const dirNames = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
     const dataDate = metadata?.data_date || 'unknown';
 
@@ -489,9 +486,9 @@ export class OceanPfzAgent {
           sst: props.sst,
           chlorophyllLevel: chlLevel,
           chlorophyllValue: chlValue,
-          waveHeight: Math.round(estimatedWave * 10) / 10,
-          windSpeed: Math.round(estimatedWind),
-          marineRisk: estimatedWave >= 2.5 ? 'HIGH' as const : estimatedWave >= 1.5 ? 'MODERATE' as const : 'LOW' as const,
+          waveHeight: 0,
+          windSpeed: 0,
+          marineRisk: 'LOW' as const,
           depthMeters: 50,
           speciesLikelihood: species,
           oceanographicEvidence: {
