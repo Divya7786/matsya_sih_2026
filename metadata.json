@@ -1,0 +1,10 @@
+{
+  "name": "MATSUYA AI",
+  "description": "MATSUYA AI: Marine Ecosystem Reasoning with Collaborative Agents powered by agentic AI for Earth observation, oceanographic analytics, fisherman voice safety, and ISRO research.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

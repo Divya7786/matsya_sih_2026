@@ -1,0 +1,3592 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          14.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.699999,
+        "sst_gradient": 1.3954257,
+        "chlorophyll": 0.55634856,
+        "pfz_probability": 0.9997096156316103
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.625,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.67,
+        "sst_gradient": 1.384054,
+        "chlorophyll": 0.5435782,
+        "pfz_probability": 0.9996748998669335
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          89.375,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.47,
+        "sst_gradient": 0.843798,
+        "chlorophyll": 0.388925,
+        "pfz_probability": 0.9995033759977306
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.875,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.73,
+        "sst_gradient": 0.9709768,
+        "chlorophyll": 0.60858095,
+        "pfz_probability": 0.9994862876134968
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.125,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.67,
+        "sst_gradient": 1.4204222,
+        "chlorophyll": 0.57032543,
+        "pfz_probability": 0.9994723898309931
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          18.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.47,
+        "sst_gradient": 0.82873356,
+        "chlorophyll": 0.54623336,
+        "pfz_probability": 0.9994206625787979
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          89.625,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.22,
+        "sst_gradient": 0.8229199,
+        "chlorophyll": 0.38547298,
+        "pfz_probability": 0.999222615052727
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          19.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.24,
+        "sst_gradient": 0.82097477,
+        "chlorophyll": 0.4314867,
+        "pfz_probability": 0.9989705227671623
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.875,
+          19.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.3,
+        "sst_gradient": 0.82461965,
+        "chlorophyll": 0.53833485,
+        "pfz_probability": 0.9989437679452492
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.125,
+          14.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.72,
+        "sst_gradient": 0.9848861,
+        "chlorophyll": 0.44157743,
+        "pfz_probability": 0.9988796729058297
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.875,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.32,
+        "sst_gradient": 1.0667725,
+        "chlorophyll": 0.47641698,
+        "pfz_probability": 0.9988341632154988
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.875,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.38,
+        "sst_gradient": 0.98731905,
+        "chlorophyll": 0.3607834,
+        "pfz_probability": 0.9988138962808093
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.875,
+          19.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.349998,
+        "sst_gradient": 1.1108555,
+        "chlorophyll": 0.7084061,
+        "pfz_probability": 0.9986718072303451
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.625,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.68,
+        "sst_gradient": 1.380146,
+        "chlorophyll": 0.36101806,
+        "pfz_probability": 0.9986088698093483
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.24,
+        "sst_gradient": 0.8402382,
+        "chlorophyll": 0.5921054,
+        "pfz_probability": 0.9984824117272197
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.91,
+        "sst_gradient": 1.0615057,
+        "chlorophyll": 0.5399606,
+        "pfz_probability": 0.9984280513320526
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.125,
+          15.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.47,
+        "sst_gradient": 1.1157048,
+        "chlorophyll": 0.4208706,
+        "pfz_probability": 0.9984253794305141
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          18.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.23,
+        "sst_gradient": 1.1065245,
+        "chlorophyll": 0.5935669,
+        "pfz_probability": 0.9983698251049288
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.375,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.63,
+        "sst_gradient": 0.8440382,
+        "chlorophyll": 0.36669603,
+        "pfz_probability": 0.9983112169821996
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.625,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.47,
+        "sst_gradient": 1.3206086,
+        "chlorophyll": 0.5732044,
+        "pfz_probability": 0.9982319459660606
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.375,
+          7.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.8,
+        "sst_gradient": 0.9329527,
+        "chlorophyll": 0.42260247,
+        "pfz_probability": 0.9980435906579506
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.625,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.789999,
+        "sst_gradient": 1.004989,
+        "chlorophyll": 0.45067605,
+        "pfz_probability": 0.9979221424315854
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          7.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.57,
+        "sst_gradient": 0.95414317,
+        "chlorophyll": 0.5506633,
+        "pfz_probability": 0.9978860866300971
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          16.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.06,
+        "sst_gradient": 1.0186255,
+        "chlorophyll": 0.708833,
+        "pfz_probability": 0.9977729702900753
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.34,
+        "sst_gradient": 0.8402382,
+        "chlorophyll": 0.44506755,
+        "pfz_probability": 0.9977037674369287
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          19.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.15,
+        "sst_gradient": 1.0023979,
+        "chlorophyll": 0.7720777,
+        "pfz_probability": 0.9976757700967822
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.625,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.32,
+        "sst_gradient": 0.8335435,
+        "chlorophyll": 0.64088464,
+        "pfz_probability": 0.9975695009162838
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.625,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.05,
+        "sst_gradient": 1.2911991,
+        "chlorophyll": 0.56558365,
+        "pfz_probability": 0.9973311449174459
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.125,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.22,
+        "sst_gradient": 0.9501581,
+        "chlorophyll": 0.51116693,
+        "pfz_probability": 0.9971573967205325
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.875,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.019999,
+        "sst_gradient": 1.2165534,
+        "chlorophyll": 0.6850859,
+        "pfz_probability": 0.9969426819251508
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.875,
+          20.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.18,
+        "sst_gradient": 1.4289876,
+        "chlorophyll": 0.79484147,
+        "pfz_probability": 0.9965028627993197
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.375,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.67,
+        "sst_gradient": 1.4222538,
+        "chlorophyll": 0.4098158,
+        "pfz_probability": 0.9959327609100906
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.375,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.779999,
+        "sst_gradient": 1.2612673,
+        "chlorophyll": 0.7431908,
+        "pfz_probability": 0.9954576152198065
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          7.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.689999,
+        "sst_gradient": 1.1313725,
+        "chlorophyll": 0.7866071,
+        "pfz_probability": 0.9946706979044961
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.125,
+          8.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.75,
+        "sst_gradient": 0.92973316,
+        "chlorophyll": 0.440728,
+        "pfz_probability": 0.994294947472993
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.599998,
+        "sst_gradient": 1.0186255,
+        "chlorophyll": 0.39865977,
+        "pfz_probability": 0.9942816402709509
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.63,
+        "sst_gradient": 0.9935806,
+        "chlorophyll": 0.37007108,
+        "pfz_probability": 0.9942555777485685
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.125,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.49,
+        "sst_gradient": 0.89442444,
+        "chlorophyll": 0.7084143,
+        "pfz_probability": 0.994234317625135
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.269999,
+        "sst_gradient": 1.0667678,
+        "chlorophyll": 0.8828971,
+        "pfz_probability": 0.9941276663207728
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.93,
+        "sst_gradient": 0.8207286,
+        "chlorophyll": 0.81549954,
+        "pfz_probability": 0.9940834971126342
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.375,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.82,
+        "sst_gradient": 0.91999817,
+        "chlorophyll": 0.5946755,
+        "pfz_probability": 0.994045883308346
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.125,
+          9.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.539999,
+        "sst_gradient": 0.9585384,
+        "chlorophyll": 0.55088806,
+        "pfz_probability": 0.9939424246582662
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.099998,
+        "sst_gradient": 0.9759106,
+        "chlorophyll": 0.77341866,
+        "pfz_probability": 0.9939308625650246
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.125,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.75,
+        "sst_gradient": 1.3892422,
+        "chlorophyll": 0.45586947,
+        "pfz_probability": 0.9939004712624394
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.91,
+        "sst_gradient": 0.99859965,
+        "chlorophyll": 0.5558636,
+        "pfz_probability": 0.993670550060573
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.449999,
+        "sst_gradient": 0.95603323,
+        "chlorophyll": 0.6974328,
+        "pfz_probability": 0.993656714441906
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.32,
+        "sst_gradient": 0.91389316,
+        "chlorophyll": 0.56682456,
+        "pfz_probability": 0.9936281019397564
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.279999,
+        "sst_gradient": 0.94084936,
+        "chlorophyll": 0.67804945,
+        "pfz_probability": 0.993575986986837
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.18,
+        "sst_gradient": 0.9701574,
+        "chlorophyll": 0.41297412,
+        "pfz_probability": 0.993537677214781
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.125,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.439999,
+        "sst_gradient": 0.8411885,
+        "chlorophyll": 0.55682814,
+        "pfz_probability": 0.9935287577651447
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.375,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.66,
+        "sst_gradient": 0.82365036,
+        "chlorophyll": 0.5721885,
+        "pfz_probability": 0.9935023175915711
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.875,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.14,
+        "sst_gradient": 1.2107852,
+        "chlorophyll": 0.38246658,
+        "pfz_probability": 0.9934692279752043
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.125,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.8,
+        "sst_gradient": 0.9879275,
+        "chlorophyll": 0.7349574,
+        "pfz_probability": 0.9933393064669176
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.375,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.68,
+        "sst_gradient": 1.1007266,
+        "chlorophyll": 0.563053,
+        "pfz_probability": 0.9932681606481196
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          89.375,
+          19.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.4,
+        "sst_gradient": 1.2191782,
+        "chlorophyll": 0.3541663,
+        "pfz_probability": 0.9931313886342188
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.625,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.619999,
+        "sst_gradient": 0.837377,
+        "chlorophyll": 0.36787757,
+        "pfz_probability": 0.9927396267162121
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.05,
+        "sst_gradient": 0.9759106,
+        "chlorophyll": 0.70364934,
+        "pfz_probability": 0.9927148367906463
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.26,
+        "sst_gradient": 1.4866049,
+        "chlorophyll": 0.5323582,
+        "pfz_probability": 0.9926876751292353
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.125,
+          19.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.48,
+        "sst_gradient": 0.84095204,
+        "chlorophyll": 0.76308316,
+        "pfz_probability": 0.9926520637803519
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          16.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.18,
+        "sst_gradient": 0.9610391,
+        "chlorophyll": 0.6183165,
+        "pfz_probability": 0.9926276724498755
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.375,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.09,
+        "sst_gradient": 1.2740508,
+        "chlorophyll": 0.64814764,
+        "pfz_probability": 0.9925802124425732
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.71,
+        "sst_gradient": 1.3102657,
+        "chlorophyll": 0.4507982,
+        "pfz_probability": 0.9924872189995585
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.625,
+          16.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.289999,
+        "sst_gradient": 1.3320668,
+        "chlorophyll": 0.67685145,
+        "pfz_probability": 0.9922889260397142
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.875,
+          15.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.32,
+        "sst_gradient": 1.8435849,
+        "chlorophyll": 0.60095805,
+        "pfz_probability": 0.9920940784259686
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.375,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.8,
+        "sst_gradient": 0.831865,
+        "chlorophyll": 0.37201387,
+        "pfz_probability": 0.9918925055869987
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.125,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.42,
+        "sst_gradient": 0.85883385,
+        "chlorophyll": 0.5989766,
+        "pfz_probability": 0.991658471083514
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.029999,
+        "sst_gradient": 1.6786888,
+        "chlorophyll": 0.8474279,
+        "pfz_probability": 0.991540795552623
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.375,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.4,
+        "sst_gradient": 0.86278707,
+        "chlorophyll": 0.40877095,
+        "pfz_probability": 0.9912556785459737
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.125,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.18,
+        "sst_gradient": 1.0607558,
+        "chlorophyll": 0.50673664,
+        "pfz_probability": 0.9906013971625675
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.875,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.689999,
+        "sst_gradient": 0.8287324,
+        "chlorophyll": 0.72948194,
+        "pfz_probability": 0.9905898401764055
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.875,
+          14.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.58,
+        "sst_gradient": 0.98081696,
+        "chlorophyll": 0.3826156,
+        "pfz_probability": 0.9902862935399405
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.625,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.029999,
+        "sst_gradient": 1.2649125,
+        "chlorophyll": 0.44747055,
+        "pfz_probability": 0.9899846894974975
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.375,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.199999,
+        "sst_gradient": 1.2433819,
+        "chlorophyll": 0.58762515,
+        "pfz_probability": 0.9895994758850059
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          14.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.029999,
+        "sst_gradient": 1.0440354,
+        "chlorophyll": 0.44322947,
+        "pfz_probability": 0.9893652561247217
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.375,
+          20.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.4,
+        "sst_gradient": 0.9633303,
+        "chlorophyll": 0.7514972,
+        "pfz_probability": 0.988983295405676
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.625,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.14,
+        "sst_gradient": 1.2214727,
+        "chlorophyll": 0.9072746,
+        "pfz_probability": 0.988904946795878
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.38,
+        "sst_gradient": 0.9577053,
+        "chlorophyll": 0.65638375,
+        "pfz_probability": 0.9887666163008992
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.375,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.449999,
+        "sst_gradient": 0.84758496,
+        "chlorophyll": 0.6020025,
+        "pfz_probability": 0.9887103562421186
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.375,
+          12.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.46,
+        "sst_gradient": 1.3000022,
+        "chlorophyll": 0.37640154,
+        "pfz_probability": 0.9886013206027029
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          89.125,
+          19.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.529999,
+        "sst_gradient": 1.2826514,
+        "chlorophyll": 0.599913,
+        "pfz_probability": 0.9885444871334199
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.625,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.49,
+        "sst_gradient": 1.5331014,
+        "chlorophyll": 0.38572326,
+        "pfz_probability": 0.9884642856558643
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.43,
+        "sst_gradient": 0.83354676,
+        "chlorophyll": 0.39783913,
+        "pfz_probability": 0.98846154808041
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          87.125,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.279999,
+        "sst_gradient": 1.836737,
+        "chlorophyll": 0.350631,
+        "pfz_probability": 0.988281213091795
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.375,
+          14.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.81,
+        "sst_gradient": 0.83546364,
+        "chlorophyll": 0.6781602,
+        "pfz_probability": 0.9882435573028233
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.625,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.31,
+        "sst_gradient": 1.6492425,
+        "chlorophyll": 0.39566353,
+        "pfz_probability": 0.987944449897326
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.125,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.57,
+        "sst_gradient": 0.8421404,
+        "chlorophyll": 0.5748052,
+        "pfz_probability": 0.9877959053432203
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.21,
+        "sst_gradient": 1.4601376,
+        "chlorophyll": 0.38650277,
+        "pfz_probability": 0.9877379463853768
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.125,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.15,
+        "sst_gradient": 1.2976944,
+        "chlorophyll": 0.5307148,
+        "pfz_probability": 0.9877114807578516
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.875,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.279999,
+        "sst_gradient": 0.9808194,
+        "chlorophyll": 0.3587772,
+        "pfz_probability": 0.9875716440328174
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          84.625,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.46,
+        "sst_gradient": 0.94339746,
+        "chlorophyll": 0.59165984,
+        "pfz_probability": 0.9875473645271141
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          85.375,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.25,
+        "sst_gradient": 1.0023997,
+        "chlorophyll": 0.3555867,
+        "pfz_probability": 0.9873879574925821
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          19.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.21,
+        "sst_gradient": 0.89643645,
+        "chlorophyll": 0.90763104,
+        "pfz_probability": 0.9873729074606058
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.46,
+        "sst_gradient": 1.5086435,
+        "chlorophyll": 0.37285322,
+        "pfz_probability": 0.9872110556051436
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.625,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.689999,
+        "sst_gradient": 0.8421404,
+        "chlorophyll": 0.5249995,
+        "pfz_probability": 0.987209357556004
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.125,
+          20.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.0,
+        "sst_gradient": 0.9602081,
+        "chlorophyll": 0.87038463,
+        "pfz_probability": 0.987079949151939
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.08,
+        "sst_gradient": 1.1485662,
+        "chlorophyll": 0.56039923,
+        "pfz_probability": 0.9870745298057899
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          84.875,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.039999,
+        "sst_gradient": 1.290736,
+        "chlorophyll": 0.37325817,
+        "pfz_probability": 0.9869151215685612
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.125,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.3,
+        "sst_gradient": 1.8157073,
+        "chlorophyll": 0.42166376,
+        "pfz_probability": 0.9867675396671934
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.74,
+        "sst_gradient": 1.1560297,
+        "chlorophyll": 0.8261741,
+        "pfz_probability": 0.9866635614804857
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.769999,
+        "sst_gradient": 1.006577,
+        "chlorophyll": 1.0424093,
+        "pfz_probability": 0.9863189921337683
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.875,
+          19.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.13,
+        "sst_gradient": 1.453407,
+        "chlorophyll": 0.7981352,
+        "pfz_probability": 0.9855652601071603
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.125,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.56,
+        "sst_gradient": 0.91607517,
+        "chlorophyll": 0.58036655,
+        "pfz_probability": 0.9855529399749563
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          89.375,
+          19.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.08,
+        "sst_gradient": 1.1157075,
+        "chlorophyll": 1.1217011,
+        "pfz_probability": 0.9854276033136486
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.71,
+        "sst_gradient": 1.0897713,
+        "chlorophyll": 0.69038355,
+        "pfz_probability": 0.9848169916992165
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.375,
+          8.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.689999,
+        "sst_gradient": 0.8982216,
+        "chlorophyll": 0.5390198,
+        "pfz_probability": 0.984646675304235
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.125,
+          16.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.289999,
+        "sst_gradient": 1.1244543,
+        "chlorophyll": 0.42527884,
+        "pfz_probability": 0.9845675517945724
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.875,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.529999,
+        "sst_gradient": 1.0434557,
+        "chlorophyll": 0.40300533,
+        "pfz_probability": 0.9842434271028094
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.22,
+        "sst_gradient": 1.0270349,
+        "chlorophyll": 0.49603587,
+        "pfz_probability": 0.9838920850419985
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.375,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.26,
+        "sst_gradient": 0.8104301,
+        "chlorophyll": 0.45326328,
+        "pfz_probability": 0.9838828034689167
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.199999,
+        "sst_gradient": 1.1151662,
+        "chlorophyll": 0.65645814,
+        "pfz_probability": 0.9838566407362274
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          14.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.24,
+        "sst_gradient": 0.92195344,
+        "chlorophyll": 0.384748,
+        "pfz_probability": 0.9837316365624379
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.09,
+        "sst_gradient": 0.97836685,
+        "chlorophyll": 0.64604485,
+        "pfz_probability": 0.98361448123938
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          89.125,
+          19.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.14,
+        "sst_gradient": 1.3038397,
+        "chlorophyll": 1.1126937,
+        "pfz_probability": 0.9833486493323947
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          14.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.17,
+        "sst_gradient": 1.0983644,
+        "chlorophyll": 0.36848918,
+        "pfz_probability": 0.9831712838703659
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          16.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.76,
+        "sst_gradient": 1.1601745,
+        "chlorophyll": 0.60851765,
+        "pfz_probability": 0.9829334194969147
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.119999,
+        "sst_gradient": 1.1142725,
+        "chlorophyll": 0.38115457,
+        "pfz_probability": 0.9826271958273994
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          19.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.0,
+        "sst_gradient": 1.2280072,
+        "chlorophyll": 0.87953335,
+        "pfz_probability": 0.982490357279815
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.359999,
+        "sst_gradient": 1.3759367,
+        "chlorophyll": 1.8504722,
+        "pfz_probability": 0.9823565089937019
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.39,
+        "sst_gradient": 0.85906947,
+        "chlorophyll": 0.48513323,
+        "pfz_probability": 0.9823009132573199
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.09,
+        "sst_gradient": 1.1986609,
+        "chlorophyll": 0.496974,
+        "pfz_probability": 0.9821256239937146
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.125,
+          19.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.3,
+        "sst_gradient": 1.1615506,
+        "chlorophyll": 1.0719813,
+        "pfz_probability": 0.9820801017381633
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          13.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.75,
+        "sst_gradient": 0.86556417,
+        "chlorophyll": 0.37068245,
+        "pfz_probability": 0.9816883893970914
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.625,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.92,
+        "sst_gradient": 1.0807424,
+        "chlorophyll": 0.36211455,
+        "pfz_probability": 0.981662952207951
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.16,
+        "sst_gradient": 1.3536658,
+        "chlorophyll": 0.44221327,
+        "pfz_probability": 0.9812703782776802
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.375,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.8,
+        "sst_gradient": 0.85440296,
+        "chlorophyll": 0.6674289,
+        "pfz_probability": 0.9812288312449702
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.875,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.14,
+        "sst_gradient": 0.81999934,
+        "chlorophyll": 0.6203844,
+        "pfz_probability": 0.9801290300186867
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.375,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.039999,
+        "sst_gradient": 1.7532835,
+        "chlorophyll": 0.48110554,
+        "pfz_probability": 0.9794066861738319
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          14.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.869999,
+        "sst_gradient": 1.2713809,
+        "chlorophyll": 0.36249113,
+        "pfz_probability": 0.9791516831087321
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          19.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.31,
+        "sst_gradient": 0.878636,
+        "chlorophyll": 0.9213358,
+        "pfz_probability": 0.9784694269558456
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.625,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.019999,
+        "sst_gradient": 0.9433969,
+        "chlorophyll": 0.35367596,
+        "pfz_probability": 0.9783510723415881
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.875,
+          15.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.369999,
+        "sst_gradient": 0.98387027,
+        "chlorophyll": 0.48291457,
+        "pfz_probability": 0.9778351972045327
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.625,
+          17.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.099998,
+        "sst_gradient": 1.0914184,
+        "chlorophyll": 0.35480016,
+        "pfz_probability": 0.977321331175873
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.0,
+        "sst_gradient": 0.8692484,
+        "chlorophyll": 0.8821111,
+        "pfz_probability": 0.9770595555873643
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.93,
+        "sst_gradient": 1.5861915,
+        "chlorophyll": 0.6610701,
+        "pfz_probability": 0.9768078163692292
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.375,
+          18.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.64,
+        "sst_gradient": 1.0097524,
+        "chlorophyll": 0.48533463,
+        "pfz_probability": 0.9767085903486173
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.375,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.859999,
+        "sst_gradient": 1.3535123,
+        "chlorophyll": 0.48630637,
+        "pfz_probability": 0.9756226075939854
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.625,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.21,
+        "sst_gradient": 1.3507054,
+        "chlorophyll": 0.42745128,
+        "pfz_probability": 0.9753880253365036
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.375,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.57,
+        "sst_gradient": 1.5368792,
+        "chlorophyll": 1.3599024,
+        "pfz_probability": 0.9753012090909832
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          14.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.8,
+        "sst_gradient": 1.1511765,
+        "chlorophyll": 0.3734832,
+        "pfz_probability": 0.9747988116334504
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.099998,
+        "sst_gradient": 0.937227,
+        "chlorophyll": 0.77030396,
+        "pfz_probability": 0.9745692686000345
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.375,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.119999,
+        "sst_gradient": 1.4484478,
+        "chlorophyll": 0.87793493,
+        "pfz_probability": 0.9742602899358804
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.875,
+          19.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.699999,
+        "sst_gradient": 1.049952,
+        "chlorophyll": 0.34816864,
+        "pfz_probability": 0.9738899909176763
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.625,
+          18.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.619999,
+        "sst_gradient": 1.1029077,
+        "chlorophyll": 0.43170726,
+        "pfz_probability": 0.9736363636363637
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.625,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.359999,
+        "sst_gradient": 1.1303079,
+        "chlorophyll": 0.5312227,
+        "pfz_probability": 0.9722249114894198
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          15.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.51,
+        "sst_gradient": 1.3213627,
+        "chlorophyll": 0.45029694,
+        "pfz_probability": 0.9720644754535793
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.375,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.49,
+        "sst_gradient": 1.6086006,
+        "chlorophyll": 0.4822644,
+        "pfz_probability": 0.9713472891291665
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.48,
+        "sst_gradient": 0.9808156,
+        "chlorophyll": 0.3485694,
+        "pfz_probability": 0.9709799596610904
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.64,
+        "sst_gradient": 1.1428028,
+        "chlorophyll": 0.35917607,
+        "pfz_probability": 0.9703755115040725
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.849998,
+        "sst_gradient": 0.9929737,
+        "chlorophyll": 2.4986682,
+        "pfz_probability": 0.9701669543542601
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.125,
+          16.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.17,
+        "sst_gradient": 1.0262545,
+        "chlorophyll": 0.4173449,
+        "pfz_probability": 0.9687595561350676
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.625,
+          12.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.39,
+        "sst_gradient": 1.2553916,
+        "chlorophyll": 0.36997452,
+        "pfz_probability": 0.9686017141306814
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.625,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.93,
+        "sst_gradient": 0.9501581,
+        "chlorophyll": 1.0592487,
+        "pfz_probability": 0.9679782577826762
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.375,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.59,
+        "sst_gradient": 1.1113987,
+        "chlorophyll": 1.8777423,
+        "pfz_probability": 0.9678374103771248
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          16.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.98,
+        "sst_gradient": 0.9931739,
+        "chlorophyll": 0.39575854,
+        "pfz_probability": 0.9677973362832968
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.125,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.119999,
+        "sst_gradient": 1.7911983,
+        "chlorophyll": 0.3557005,
+        "pfz_probability": 0.9676622591118488
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.375,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.4,
+        "sst_gradient": 0.8352243,
+        "chlorophyll": 0.94648516,
+        "pfz_probability": 0.9649350810093114
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.625,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.72,
+        "sst_gradient": 1.3023057,
+        "chlorophyll": 2.0887442,
+        "pfz_probability": 0.9647174461297916
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          13.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.18,
+        "sst_gradient": 0.9507868,
+        "chlorophyll": 1.9155427,
+        "pfz_probability": 0.962580638092119
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          16.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.63,
+        "sst_gradient": 1.3171188,
+        "chlorophyll": 0.6635354,
+        "pfz_probability": 0.9621275361138066
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          85.875,
+          16.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.01,
+        "sst_gradient": 0.8487642,
+        "chlorophyll": 0.3910977,
+        "pfz_probability": 0.9603678389895275
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.625,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.55,
+        "sst_gradient": 0.9935806,
+        "chlorophyll": 0.35437623,
+        "pfz_probability": 0.9603120227275322
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          17.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.22,
+        "sst_gradient": 1.2763976,
+        "chlorophyll": 1.2539002,
+        "pfz_probability": 0.9580402253104667
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.875,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.0,
+        "sst_gradient": 1.0607572,
+        "chlorophyll": 0.37789112,
+        "pfz_probability": 0.9569800997893503
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.125,
+          13.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.9,
+        "sst_gradient": 0.9035502,
+        "chlorophyll": 0.4672393,
+        "pfz_probability": 0.9544646664262877
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.125,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.59,
+        "sst_gradient": 0.8062248,
+        "chlorophyll": 0.50046414,
+        "pfz_probability": 0.953119724479763
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.125,
+          13.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.89,
+        "sst_gradient": 1.0601863,
+        "chlorophyll": 0.4276678,
+        "pfz_probability": 0.9526822187426431
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.625,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.99,
+        "sst_gradient": 1.0480454,
+        "chlorophyll": 0.589394,
+        "pfz_probability": 0.9524601254575454
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.125,
+          18.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.359999,
+        "sst_gradient": 0.8000023,
+        "chlorophyll": 0.5751545,
+        "pfz_probability": 0.9486428500352954
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          13.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.07,
+        "sst_gradient": 0.9654045,
+        "chlorophyll": 0.5088496,
+        "pfz_probability": 0.9483591649618924
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          15.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.439999,
+        "sst_gradient": 1.5861915,
+        "chlorophyll": 0.4232502,
+        "pfz_probability": 0.9482334760525992
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.89,
+        "sst_gradient": 1.1476952,
+        "chlorophyll": 1.0286944,
+        "pfz_probability": 0.9444191933965252
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          19.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.029999,
+        "sst_gradient": 1.2625356,
+        "chlorophyll": 1.5024936,
+        "pfz_probability": 0.9420327907708025
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          86.875,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.22,
+        "sst_gradient": 2.1741214,
+        "chlorophyll": 0.3582479,
+        "pfz_probability": 0.9419993683946679
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.375,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.9,
+        "sst_gradient": 2.2432103,
+        "chlorophyll": 2.5311515,
+        "pfz_probability": 0.9417268489651097
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.875,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.32,
+        "sst_gradient": 0.92282397,
+        "chlorophyll": 0.71701294,
+        "pfz_probability": 0.9394504027357594
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.625,
+          8.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.01,
+        "sst_gradient": 0.9651932,
+        "chlorophyll": 0.43347067,
+        "pfz_probability": 0.938732307532918
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.119999,
+        "sst_gradient": 1.0465204,
+        "chlorophyll": 1.0077955,
+        "pfz_probability": 0.9387230071592063
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.125,
+          18.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.689999,
+        "sst_gradient": 0.8002492,
+        "chlorophyll": 0.4041036,
+        "pfz_probability": 0.938207275568233
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.375,
+          20.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.0,
+        "sst_gradient": 0.9682952,
+        "chlorophyll": 1.5621456,
+        "pfz_probability": 0.9371477337497689
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.625,
+          8.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.789999,
+        "sst_gradient": 0.8005025,
+        "chlorophyll": 0.80205876,
+        "pfz_probability": 0.9328407305282086
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.81,
+        "sst_gradient": 1.0493816,
+        "chlorophyll": 0.511256,
+        "pfz_probability": 0.9271498542898026
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.125,
+          14.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.4,
+        "sst_gradient": 1.0324721,
+        "chlorophyll": 0.34977698,
+        "pfz_probability": 0.9258451142810152
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.625,
+          14.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.41,
+        "sst_gradient": 0.9055403,
+        "chlorophyll": 0.5261115,
+        "pfz_probability": 0.9251793635793674
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.875,
+          16.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.56,
+        "sst_gradient": 1.4167595,
+        "chlorophyll": 0.9645563,
+        "pfz_probability": 0.9240869696851931
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          14.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.82,
+        "sst_gradient": 0.9732411,
+        "chlorophyll": 0.412765,
+        "pfz_probability": 0.9226003824559585
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.875,
+          15.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.47,
+        "sst_gradient": 1.3984283,
+        "chlorophyll": 0.3471337,
+        "pfz_probability": 0.920527834340675
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.875,
+          17.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.96,
+        "sst_gradient": 0.8497048,
+        "chlorophyll": 2.176148,
+        "pfz_probability": 0.9198019030109588
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.375,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.39,
+        "sst_gradient": 0.92347383,
+        "chlorophyll": 0.5576299,
+        "pfz_probability": 0.9192311189404135
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.375,
+          18.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.38,
+        "sst_gradient": 2.0342062,
+        "chlorophyll": 0.6695827,
+        "pfz_probability": 0.917870707770588
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          90.875,
+          17.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.279999,
+        "sst_gradient": 2.6692328,
+        "chlorophyll": 0.40132514,
+        "pfz_probability": 0.9176917473885706
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.375,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.949999,
+        "sst_gradient": 0.8910683,
+        "chlorophyll": 1.4218313,
+        "pfz_probability": 0.9151677312959146
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.875,
+          15.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.849998,
+        "sst_gradient": 1.8461864,
+        "chlorophyll": 4.518426,
+        "pfz_probability": 0.9121684082741666
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.625,
+          18.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.08,
+        "sst_gradient": 0.8009985,
+        "chlorophyll": 0.5538502,
+        "pfz_probability": 0.911769211720181
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.625,
+          15.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.66,
+        "sst_gradient": 1.1180326,
+        "chlorophyll": 4.9397116,
+        "pfz_probability": 0.9116097919823299
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.625,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.099998,
+        "sst_gradient": 0.8856645,
+        "chlorophyll": 0.6080083,
+        "pfz_probability": 0.9096549879379684
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.375,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.269999,
+        "sst_gradient": 0.8357019,
+        "chlorophyll": 0.6320005,
+        "pfz_probability": 0.9028100410815777
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.875,
+          7.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.97,
+        "sst_gradient": 1.3314683,
+        "chlorophyll": 0.7166297,
+        "pfz_probability": 0.9010365736822991
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          19.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.0,
+        "sst_gradient": 1.1923069,
+        "chlorophyll": 2.1049337,
+        "pfz_probability": 0.8977486901359673
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.125,
+          16.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.949999,
+        "sst_gradient": 1.8835075,
+        "chlorophyll": 0.59247756,
+        "pfz_probability": 0.8916123826097535
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.875,
+          14.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.869999,
+        "sst_gradient": 1.013906,
+        "chlorophyll": 0.3535671,
+        "pfz_probability": 0.8854379172680974
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.125,
+          20.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.08,
+        "sst_gradient": 3.1303658,
+        "chlorophyll": 1.409905,
+        "pfz_probability": 0.8741124881893663
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          91.875,
+          8.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.84,
+        "sst_gradient": 0.8335435,
+        "chlorophyll": 0.45494065,
+        "pfz_probability": 0.8567034723838127
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.625,
+          13.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.22,
+        "sst_gradient": 0.8246206,
+        "chlorophyll": 0.40749705,
+        "pfz_probability": 0.8436896777696385
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.625,
+          13.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 27.74,
+        "sst_gradient": 0.8376158,
+        "chlorophyll": 0.34660527,
+        "pfz_probability": 0.8427136314466095
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          87.875,
+          7.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.46,
+        "sst_gradient": 1.0824074,
+        "chlorophyll": 0.47263077,
+        "pfz_probability": 0.8400287403481661
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.125,
+          18.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 26.039999,
+        "sst_gradient": 0.7969969,
+        "chlorophyll": 0.6690005,
+        "pfz_probability": 0.8266061254260169
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.125,
+          7.625
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.529999,
+        "sst_gradient": 0.94021535,
+        "chlorophyll": 0.5391079,
+        "pfz_probability": 0.8220913511511374
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          92.375,
+          19.125
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 25.99,
+        "sst_gradient": 1.582022,
+        "chlorophyll": 0.72221154,
+        "pfz_probability": 0.8172039232702928
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          94.875,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.15,
+        "sst_gradient": 1.2536359,
+        "chlorophyll": 0.75702524,
+        "pfz_probability": 0.8147446488159237
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.125,
+          7.875
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.33,
+        "sst_gradient": 0.843798,
+        "chlorophyll": 0.38304403,
+        "pfz_probability": 0.7028007402285911
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.625,
+          7.375
+        ]
+      },
+      "properties": {
+        "date": "2020-01-01",
+        "sst": 28.619999,
+        "sst_gradient": 0.8395235,
+        "chlorophyll": 0.3502396,
+        "pfz_probability": 0.5159804486058236
+      }
+    }
+  ]
+}

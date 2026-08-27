@@ -1,0 +1,19 @@
+{
+  "model": "RandomForestClassifier",
+  "n_estimators": 200,
+  "max_depth": 12,
+  "features": [
+    "sst",
+    "sst_gradient",
+    "chlorophyll"
+  ],
+  "training_samples": 3304,
+  "testing_samples": 826,
+  "total_samples": 4130,
+  "pfz_predictions": 211,
+  "data_date": "2020-01-01",
+  "sst_source": "NOAA OISST v2.1",
+  "chlorophyll_source": "NASA MODIS-Aqua L3",
+  "label_type": "pseudo-label",
+  "warning": "Not official INCOIS PFZ advisory data"
+}
