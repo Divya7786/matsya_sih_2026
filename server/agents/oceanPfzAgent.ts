@@ -243,8 +243,11 @@ export class OceanPfzAgent {
 
     const mlResults = await this.callLiveMLBatch(candidates);
 
+    const liveWaveHeight = liveData.waveHeight > 0 ? liveData.waveHeight : 0.9;
+    const liveWindSpeed = liveData.windWaveHeight > 0 ? Math.round(liveData.windWaveHeight * 15) : 14;
+
     if (mlResults && mlResults.length > 0) {
-      const result = this.buildFromLiveMLResults(mlResults, candidates, originLat, originLng, radius, locName);
+      const result = this.buildFromLiveMLResults(mlResults, candidates, originLat, originLng, radius, locName, liveWaveHeight, liveWindSpeed);
       // Enrich with live data source info
       result.sstSummary.meanSst = baseSst > 0 ? baseSst : result.sstSummary.meanSst;
       result.chlorophyllSummary.meanValue = baseChl > 0 ? baseChl : result.chlorophyllSummary.meanValue;
@@ -264,6 +267,7 @@ export class OceanPfzAgent {
     mlResults: { pfz_prediction: boolean; confidence: number }[],
     candidates: { lat: number; lng: number; sst: number; gradient: number; chl: number }[],
     originLat: number, originLng: number, radius: number, locName: string,
+    liveWaveHeight: number = 0.9, liveWindSpeed: number = 14,
   ): OceanPfzAnalysisResult {
     const dirNames = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
     const now = new Date();
@@ -298,9 +302,9 @@ export class OceanPfzAgent {
         sst: Math.round(r.sst * 10) / 10,
         chlorophyllLevel: r.chl > 2.0 ? 'Very High' as const : r.chl > 1.0 ? 'High' as const : r.chl > 0.5 ? 'Medium' as const : 'Low' as const,
         chlorophyllValue: Math.round(r.chl * 100) / 100,
-        waveHeight: 0.9,
-        windSpeed: 14,
-        marineRisk: 'LOW' as const,
+        waveHeight: Math.round(liveWaveHeight * 10) / 10,
+        windSpeed: Math.round(liveWindSpeed),
+        marineRisk: liveWaveHeight >= 2.5 ? 'HIGH' as const : liveWaveHeight >= 1.5 ? 'MODERATE' as const : 'LOW' as const,
         depthMeters: 50,
         speciesLikelihood: species,
         oceanographicEvidence: {
@@ -348,8 +352,12 @@ export class OceanPfzAgent {
 
   private buildFromMLPredictions(
     features: any[], metadata: any | null,
-    originLat: number, originLng: number, radius: number, locName: string
+    originLat: number, originLng: number, radius: number, locName: string,
+    liveWaveHeight?: number, liveWindSpeed?: number,
   ): OceanPfzAnalysisResult {
+    const isBayOfBengal = originLat >= 8 && originLat <= 22 && originLng >= 80 && originLng <= 95;
+    const estimatedWave = liveWaveHeight ?? Math.round((isBayOfBengal ? 0.85 : 1.35) * 10) / 10;
+    const estimatedWind = liveWindSpeed ?? (isBayOfBengal ? 14 : 20);
     const dirNames = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
     const dataDate = metadata?.data_date || 'unknown';
 
@@ -395,9 +403,9 @@ export class OceanPfzAgent {
           sst: props.sst,
           chlorophyllLevel: chlLevel,
           chlorophyllValue: chlValue,
-          waveHeight: 0.9,
-          windSpeed: 14,
-          marineRisk: 'LOW' as const,
+          waveHeight: Math.round(estimatedWave * 10) / 10,
+          windSpeed: Math.round(estimatedWind),
+          marineRisk: estimatedWave >= 2.5 ? 'HIGH' as const : estimatedWave >= 1.5 ? 'MODERATE' as const : 'LOW' as const,
           depthMeters: 50,
           speciesLikelihood: species,
           oceanographicEvidence: {

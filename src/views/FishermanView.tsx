@@ -45,15 +45,22 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   const [voiceQuery, setVoiceQuery] = useState('');
   const [selectedPFZ, setSelectedPFZ] = useState<PFZZone>(MOCK_PFZ_ZONES[0]);
   const [activeRoute, setActiveRoute] = useState<RoutePlan>(MOCK_SAMPLE_ROUTES.chennai_to_pfz1);
-  const [lastAnswer, setLastAnswer] = useState<string>(
-    'வணக்கம்! இன்றைய கடல் நிலை பாதுகாப்பானது (அலை 0.8 மீ). 38 கி.மீ வடகிழக்கில் அதிக மீன் வளம் உள்ள மண்டலம் (PFZ) கண்டறியப்பட்டுள்ளது.'
-  );
+  const [lastAnswer, setLastAnswer] = useState<string>(() => {
+    const n = localStorage.getItem('matsya_name');
+    return n
+      ? `வணக்கம் ${n}! இன்றைய கடல் நிலை பாதுகாப்பானது (அலை 0.8 மீ). 38 கி.மீ வடகிழக்கில் அதிக மீன் வளம் உள்ள மண்டலம் (PFZ) கண்டறியப்பட்டுள்ளது.`
+      : 'வணக்கம்! இன்றைய கடல் நிலை பாதுகாப்பானது (அலை 0.8 மீ). 38 கி.மீ வடகிழக்கில் அதிக மீன் வளம் உள்ள மண்டலம் (PFZ) கண்டறியப்பட்டுள்ளது.';
+  });
   const [livePfzZones, setLivePfzZones] = useState<PFZZone[]>([]);
   const [liveRisk, setLiveRisk] = useState<AgentOrchestrationResult['riskAssessment'] | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(false);
   const [geoPos, setGeoPos] = useState<GeoPosition>(() => ({ ...getFallbackPosition(), status: 'loading' }));
   const [isNavigating, setIsNavigating] = useState(false);
   const [lastTrip, setLastTrip] = useState<TripRecord | null>(null);
+
+  const [fishermanName, setFishermanName] = useState<string>(() => localStorage.getItem('matsya_name') || '');
+  const [nameInput, setNameInput] = useState('');
+  const [showNameEntry, setShowNameEntry] = useState<boolean>(() => !localStorage.getItem('matsya_name'));
 
   const currentTaskIdRef = useRef<string | null>(null);
   const isExecutingRef = useRef<boolean>(false);
@@ -142,11 +149,15 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
 
       setTaskState('EXECUTING');
       setIsMapLoading(true);
-      const result = await runAgentOrchestration(cleanQuery, selectedLang, {
-        lat: geoPos.latitude,
-        lng: geoPos.longitude,
-        name: formatLocationName(geoPos),
-      });
+      const result = await runAgentOrchestration(
+        fishermanName ? `[Fisherman: ${fishermanName}] ${cleanQuery}` : cleanQuery,
+        selectedLang,
+        {
+          lat: geoPos.latitude,
+          lng: geoPos.longitude,
+          name: formatLocationName(geoPos),
+        }
+      );
 
       if (currentTaskIdRef.current !== newTaskId) return;
 
@@ -245,6 +256,21 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   const handleContinueAfterArrival = () => setIsNavigating(false);
   const handleCancelNavigation = () => setIsNavigating(false);
 
+  const handleNameConfirm = () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    localStorage.setItem('matsya_name', trimmed);
+    setFishermanName(trimmed);
+    setShowNameEntry(false);
+    setLastAnswer(
+      selectedLang === 'ta'
+        ? `வணக்கம் ${trimmed}! இன்றைய கடல் நிலை பாதுகாப்பானது. 38 கி.மீ வடகிழக்கில் PFZ கண்டறியப்பட்டுள்ளது.`
+        : selectedLang === 'hi'
+        ? `नमस्ते ${trimmed}! समुद्र आज सुरक्षित है। 38 किमी NE में PFZ मिला है।`
+        : `Welcome ${trimmed}! Sea conditions are safe today. PFZ detected 38 km NE.`
+    );
+  };
+
   const isBusy =
     taskState === 'PLANNING' || taskState === 'EXECUTING' || taskState === 'SYNTHESIZING';
 
@@ -291,6 +317,41 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
         ].join(' ')}
       >
 
+        {/* ── NAME ENTRY OVERLAY (first-time) ──────────────────────────────── */}
+        {showNameEntry && (
+          <div className="absolute inset-0 z-50 bg-[#06101e]/95 backdrop-blur-sm flex flex-col items-center justify-center p-8 gap-6">
+            <div className="w-14 h-14 rounded-2xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center mb-2">
+              <Anchor className="w-7 h-7 text-teal-400" />
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-white mb-1">வணக்கம்! Welcome</div>
+              <div className="text-[11px] text-white/50 font-mono">Enter your name so MATSYA AI can greet you</div>
+            </div>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleNameConfirm()}
+              placeholder="உங்கள் பெயர் / Your name"
+              autoFocus
+              className="w-full max-w-[260px] px-4 py-3 rounded-xl bg-white/8 border border-white/20 text-white text-sm font-medium placeholder:text-white/30 outline-none focus:border-teal-500/60 text-center"
+            />
+            <button
+              onClick={handleNameConfirm}
+              disabled={!nameInput.trim()}
+              className="px-8 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition"
+            >
+              தொடரவும் / Continue
+            </button>
+            <button
+              onClick={() => setShowNameEntry(false)}
+              className="text-[10px] text-white/30 hover:text-white/60 font-mono transition"
+            >
+              Skip
+            </button>
+          </div>
+        )}
+
         {/* ── TOP BAR ──────────────────────────────────────────────────────── */}
         <div className="flex-none h-14 px-4 flex items-center gap-3 bg-[#06101e] border-b border-white/8 z-10">
 
@@ -301,8 +362,13 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
 
           {/* Name + GPS status */}
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold text-white tracking-widest uppercase font-mono leading-tight">
+            <div className="text-[11px] font-bold text-white tracking-widest uppercase font-mono leading-tight flex items-center gap-1.5">
               MATSYA AI
+              {fishermanName && (
+                <span className="text-[9px] font-normal text-teal-400 normal-case tracking-normal">
+                  · {fishermanName}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5">
               {geoPos.status === 'success' ? (

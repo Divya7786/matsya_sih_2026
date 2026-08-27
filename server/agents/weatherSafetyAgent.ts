@@ -220,7 +220,13 @@ export class WeatherSafetyAgent {
       operationalAdvice: {
         artisanalCraft: artisanalStatus,
         mechanizedTrawlers: mechanizedStatus,
-        recommendedDepartureWindow: '04:30 AM to 07:30 AM IST',
+        recommendedDepartureWindow: waveHeight >= 2.5
+        ? 'Departure not recommended — sea state too rough'
+        : waveHeight >= 1.8
+        ? '05:30 AM to 07:00 AM IST (calmer morning window — exercise caution)'
+        : waveHeight >= 1.2
+        ? '04:30 AM to 07:30 AM IST (moderate swell — suitable for mechanised craft)'
+        : '04:00 AM to 08:00 AM IST (favourable conditions — all craft permitted)',
       },
       spokenAdvisory: {
         en: `Sea conditions are ${overallRisk} with ${waveHeight} metre waves and ${windSpeed} km/h winds.`,
@@ -309,6 +315,21 @@ export class WeatherSafetyAgent {
 
     const estimatedHours = Math.round((totalDistKm / speedKmh) * 10) / 10;
 
+    // Estimate sea conditions for this origin using same regional formula as buildAssessment fallback
+    const isBayOfBengal = origLat >= 8 && origLat <= 22 && origLng >= 80 && origLng <= 95;
+    const baseWave = isBayOfBengal ? 0.85 : 1.35;
+    const routeWaveEst = Math.round((baseWave + Math.abs(Math.sin(origLat * 1.5 + origLng * 0.8)) * 0.35) * 10) / 10;
+    const routeRiskScore = routeWaveEst >= 2.5 ? 65
+      : routeWaveEst >= 2.0 ? 42
+      : routeWaveEst >= 1.5 ? 28
+      : routeWaveEst >= 1.0 ? 18
+      : 8;
+    const routeDepartureWindow = routeWaveEst >= 2.5
+      ? 'Departure not recommended — sea state too rough for this route'
+      : routeWaveEst >= 1.8
+      ? `Optimal departure 05:30–07:00 AM IST (estimated ${routeWaveEst} m swell — moderate)`
+      : `Optimal departure 04:30–07:30 AM IST (estimated ${routeWaveEst} m swell — favourable)`;
+
     return {
       id: `route-${Date.now().toString(36)}`,
       origin: { lat: origLat, lng: origLng, name: origName },
@@ -317,11 +338,11 @@ export class WeatherSafetyAgent {
       totalDistanceNauticalMiles: Math.round(totalDistKm * 0.539957 * 10) / 10,
       estimatedTravelTimeHours: estimatedHours,
       averageSpeedKnots: speedKnots,
-      riskScore: 12,
+      riskScore: routeRiskScore,
       primaryRouteWaypoints: waypoints,
       alternativeRouteWaypoints: altWaypoints,
       hazardsAvoided,
-      departureWindowRecommendation: 'Optimal departure at 05:00 AM IST to utilize 12-knot southwesterly following breeze.',
+      departureWindowRecommendation: routeDepartureWindow,
       routingAlgorithmUsed: 'A* Isochrone Marine Pathfinding (Cost = Distance + Wave Swell + Geofence Proximity)',
       generatedAt: new Date().toISOString(),
     };
