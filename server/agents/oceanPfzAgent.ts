@@ -251,36 +251,42 @@ export class OceanPfzAgent {
     const liveWindSpeed  = liveData?.windWaveHeight && liveData.windWaveHeight > 0 ? Math.round(liveData.windWaveHeight * 15) : 0;
 
     // ── Step 2: Build ML candidates from real grid ────────────────────────
-    // Only use points where both SST and CHL are valid satellite observations
+    // Require BOTH real SST AND real CHL for each grid point.
+    // Points with missing CHL are skipped — we never impute or fabricate chlorophyll.
     const candidates: { lat: number; lng: number; sst: number; gradient: number; chl: number }[] = [];
+    let sstOnlySkipped = 0;  // points with valid SST but no observed CHL
 
     for (const pt of pfzGrid.gridPoints) {
       const dist = calculateHaversineKm(originLat, originLng, pt.lat, pt.lng);
-      if (dist < 3 || dist > radius) continue;    // skip origin and beyond radius
+      if (dist < 3 || dist > radius) continue;
 
-      // Require real SST. For CHL, use 0.3 (Bay of Bengal baseline) if unavailable
-      // but mark it explicitly
-      if (pt.sst <= 0) continue;                   // skip if no real SST
+      if (pt.sst <= 0) continue;  // require real SST
 
-      const chl = pt.chlorophyll > 0 ? pt.chlorophyll : 0;  // 0 = genuinely unknown
-      const grad = pt.sstGradient;
+      if (pt.chlorophyll <= 0) {
+        sstOnlySkipped++;  // has SST but CHL is cloud-covered / unavailable — skip
+        continue;
+      }
 
-      candidates.push({ lat: pt.lat, lng: pt.lng, sst: pt.sst, gradient: grad, chl });
+      candidates.push({ lat: pt.lat, lng: pt.lng, sst: pt.sst, gradient: pt.sstGradient, chl: pt.chlorophyll });
     }
 
-    console.log(`[OCEAN_DATA_FETCH] SST=${pfzGrid.sstStatus} (${pfzGrid.sstTimestamp}), CHL=${pfzGrid.chlStatus} (${pfzGrid.chlTimestamp}), candidates=${candidates.length}`);
+    console.log(
+      `[OCEAN_DATA_FETCH] SST=${pfzGrid.sstStatus} (${pfzGrid.sstTimestamp}), ` +
+      `CHL=${pfzGrid.chlStatus} (${pfzGrid.chlTimestamp}), ` +
+      `full_data_candidates=${candidates.length}, sst_only_skipped=${sstOnlySkipped}`
+    );
 
-    // If we have no valid SST data, return UNAVAILABLE rather than fake data
     if (candidates.length === 0) {
-      return this.buildUnavailableResult(
-        originLat, originLng, locName, radius,
-        `SST: ${pfzGrid.sstStatus}, CHL: ${pfzGrid.chlStatus}. No valid satellite observations.`
-      );
+      const reason = sstOnlySkipped > 0
+        ? `No chlorophyll observations available for this region (${sstOnlySkipped} grid points had SST but CHL was cloud-covered or unavailable). CHL source: ${pfzGrid.chlSource}.`
+        : `SST: ${pfzGrid.sstStatus}, CHL: ${pfzGrid.chlStatus}. No valid satellite observations.`;
+      return this.buildUnavailableResult(originLat, originLng, locName, radius, reason);
     }
 
     // ── Step 3: Run ML batch ──────────────────────────────────────────────
+    const realChlCount = candidates.filter(c => c.chl > 0).length;  // all candidates have real CHL at this point
+    console.log(`[ML_REQUEST] batch_size=${candidates.length}, real_chl=${realChlCount}, skipped_no_chl=${sstOnlySkipped}`);
     const mlResults = await this.callLiveMLBatch(candidates);
-    console.log(`[ML_REQUEST] batch_size=${candidates.length}`);
 
     if (!mlResults || mlResults.length === 0) {
       // ML service down — return UNAVAILABLE (not fake data)
@@ -311,6 +317,7 @@ export class OceanPfzAgent {
       result.mlMetadata.disclaimer =
         `ML predictions from real satellite data. SST: ${pfzGrid.sstSource} (${pfzGrid.sstTimestamp || 'no timestamp'}). ` +
         `CHL: ${pfzGrid.chlSource} (${pfzGrid.chlTimestamp || 'no timestamp'}). ` +
+        `Grid points: ${candidates.length} with observed CHL, ${sstOnlySkipped} skipped (cloud-covered/unavailable CHL). ` +
         `NOT official INCOIS PFZ advisory.`;
     }
 
