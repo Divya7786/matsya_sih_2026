@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { PFZZone, RoutePlan, AgentOrchestrationResult } from '../types/marine';
 import { MOCK_PFZ_ZONES, MOCK_SAMPLE_ROUTES, SUPPORTED_LANGUAGES } from '../data/mockMarineData';
-import { TacticalMap } from '../components/TacticalMap';
+import { MarineLeafletMap } from '../components/MarineLeafletMap';
 import { MarineVoiceService } from '../services/voice';
 import { runAgentOrchestration } from '../services/api';
 import { GeoPosition, requestPosition, getFallbackPosition, formatLocationName } from '../services/geolocation';
@@ -39,7 +39,6 @@ export type FishermanTaskState =
   | 'COMPLETED';
 
 export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplorer }) => {
-  // ── All original state preserved ──────────────────────────────────────────
   const [selectedLang, setSelectedLang] = useState<string>('ta');
   const [taskState, setTaskState] = useState<FishermanTaskState>('IDLE');
   const [voiceQuery, setVoiceQuery] = useState('');
@@ -131,7 +130,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     ],
   };
 
-  // ── All original handlers preserved ───────────────────────────────────────
+  // ── All original handlers ──────────────────────────────────────────────────
   const startFishermanTask = async (queryText: string) => {
     const cleanQuery = queryText.trim();
     if (!cleanQuery || isExecutingRef.current) return;
@@ -239,7 +238,10 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     setTaskState('IDLE');
   };
 
-  const handleStartNavigation = () => setIsNavigating(true);
+  const handleStartNavigation = (pfz?: PFZZone) => {
+    if (pfz) setSelectedPFZ(pfz);
+    setIsNavigating(true);
+  };
 
   const handleEndTrip = (trip: TripRecord) => {
     setLastTrip(trip);
@@ -274,13 +276,16 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   const isBusy =
     taskState === 'PLANNING' || taskState === 'EXECUTING' || taskState === 'SYNTHESIZING';
 
-  // ── Derived status for floating chips ─────────────────────────────────────
+  const displayPfzZones = livePfzZones.length > 0 ? livePfzZones : MOCK_PFZ_ZONES;
+  const nearestPfz = displayPfzZones[0] ?? selectedPFZ;
+
+  // Safety status derived from live risk
   const waveInfo = liveRisk?.factors?.find((f) => f.factor.includes('Wave'))?.risk?.split(' ')[0];
   const windInfo = liveRisk?.factors?.find((f) => f.factor.includes('Wind'))?.risk?.split('(')[0]?.trim();
   const sstInfo = livePfzZones.length > 0 ? `${livePfzZones[0].sst}°C` : null;
   const safetyLevel = liveRisk?.overallRisk;
 
-  // Language-specific UI strings
+  // Language strings
   const listeningText =
     selectedLang === 'ta' ? 'கேட்கிறேன்...' :
     selectedLang === 'hi' ? 'सुन रहा हूं...' :
@@ -303,23 +308,31 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    /* Outer: dark background — shows phone frame on desktop, full-screen on mobile */
-    <div className="w-full bg-slate-950 flex items-start justify-center min-h-[calc(100vh-4rem)]">
+    /* Page backdrop — slate background shows the phone frame on desktop */
+    <div className="w-full bg-slate-950 flex items-start justify-center pt-6 pb-8 min-h-[calc(100vh-4rem)] px-4">
 
-      {/* ═══ PHONE FRAME CONTAINER ═══ */}
+      {/* ═══ REALISTIC PHONE FRAME ═══ */}
       <div
         className={[
-          'relative w-full bg-[#06101e] flex flex-col overflow-hidden',
-          // Desktop: center as phone frame
-          'md:max-w-[390px] md:my-4 md:rounded-[40px] md:shadow-2xl md:border md:border-slate-700/40',
-          // Mobile: fill remaining viewport
-          'h-[calc(100vh-4rem)] md:h-[760px]',
+          'relative flex flex-col overflow-hidden',
+          'bg-[#06101e]',
+          // Phone dimensions
+          'w-full max-w-[390px]',
+          // Height: fills remaining viewport on mobile, fixed phone height on desktop
+          'h-[calc(100svh-7rem)] min-h-[640px]',
+          'sm:h-[844px]',
+          // Phone chrome
+          'rounded-[36px] sm:rounded-[44px]',
+          'border border-slate-700/50',
+          'shadow-[0_32px_80px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)]',
         ].join(' ')}
       >
+        {/* ── PHONE TOP NOTCH (decorative) ────────────────────────────────── */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-24 h-6 bg-[#06101e] rounded-b-2xl" />
 
-        {/* ── NAME ENTRY OVERLAY (first-time) ──────────────────────────────── */}
+        {/* ── NAME ENTRY OVERLAY ───────────────────────────────────────────── */}
         {showNameEntry && (
-          <div className="absolute inset-0 z-50 bg-[#06101e]/95 backdrop-blur-sm flex flex-col items-center justify-center p-8 gap-6">
+          <div className="absolute inset-0 z-50 bg-[#06101e]/97 backdrop-blur-sm flex flex-col items-center justify-center p-8 gap-6">
             <div className="w-14 h-14 rounded-2xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center mb-2">
               <Anchor className="w-7 h-7 text-teal-400" />
             </div>
@@ -352,52 +365,45 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
           </div>
         )}
 
-        {/* ── TOP BAR ──────────────────────────────────────────────────────── */}
-        <div className="flex-none h-14 px-4 flex items-center gap-3 bg-[#06101e] border-b border-white/8 z-10">
-
-          {/* Brand mark */}
-          <div className="w-8 h-8 rounded-xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center shrink-0">
-            <Anchor className="w-4 h-4 text-teal-400" />
+        {/* ── APP HEADER ───────────────────────────────────────────────────── */}
+        <div className="flex-none h-[58px] px-4 pt-2 flex items-center gap-3 bg-[#06101e] border-b border-white/8 z-20 shrink-0">
+          {/* Brand */}
+          <div className="w-7 h-7 rounded-xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center shrink-0">
+            <Anchor className="w-3.5 h-3.5 text-teal-400" />
           </div>
 
-          {/* Name + GPS status */}
+          {/* Title + GPS */}
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold text-white tracking-widest uppercase font-mono leading-tight flex items-center gap-1.5">
-              MATSYA AI
+            <div className="text-[10px] font-bold text-white tracking-widest uppercase font-mono leading-tight flex items-center gap-1.5">
+              ⚓ MATSYA AI
               {fishermanName && (
                 <span className="text-[9px] font-normal text-teal-400 normal-case tracking-normal">
                   · {fishermanName}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 mt-0.5">
               {geoPos.status === 'success' ? (
                 <>
-                  <LocateFixed className="w-2.5 h-2.5 text-emerald-400" />
-                  <span className="text-[9px] text-emerald-400 font-mono">
-                    GPS ±{geoPos.accuracy}m
-                  </span>
-                  <span className="text-[8px] text-white/30 font-mono truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                  <span className="text-[8.5px] text-emerald-400 font-mono font-bold">GPS ACTIVE</span>
+                  <span className="text-[7.5px] text-white/30 font-mono truncate">
                     {geoPos.latitude.toFixed(3)}°N {geoPos.longitude.toFixed(3)}°E
                   </span>
                 </>
               ) : geoPos.status === 'loading' ? (
-                <span className="text-[9px] text-amber-400 font-mono animate-pulse">GPS...</span>
+                <span className="text-[8.5px] text-amber-400 font-mono animate-pulse">📡 Acquiring GPS...</span>
               ) : (
                 <>
-                  <span className="text-[9px] text-white/35 font-mono">Demo — Kasimedu, Chennai</span>
-                  <button
-                    onClick={retryGps}
-                    className="text-[8px] text-teal-400/60 hover:text-teal-400 font-mono underline"
-                  >
-                    Retry
-                  </button>
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/25 inline-block" />
+                  <span className="text-[8.5px] text-white/35 font-mono">DEMO · Kasimedu, Chennai</span>
+                  <button onClick={retryGps} className="text-[7.5px] text-teal-400/60 hover:text-teal-400 font-mono underline">Retry</button>
                 </>
               )}
             </div>
           </div>
 
-          {/* Language selector — compact pill strip */}
+          {/* Language pills */}
           <div className="flex items-center gap-0.5 shrink-0">
             {SUPPORTED_LANGUAGES.slice(0, 5).map((lang) => (
               <button
@@ -409,7 +415,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                   setTaskState('IDLE');
                 }}
                 className={[
-                  'px-1.5 py-0.5 rounded text-[8px] font-bold transition disabled:opacity-40',
+                  'px-1.5 py-0.5 rounded text-[7.5px] font-bold transition disabled:opacity-40',
                   selectedLang === lang.code
                     ? 'bg-teal-600 text-white'
                     : 'text-white/35 hover:text-white/70',
@@ -421,30 +427,58 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
           </div>
         </div>
 
-        {/* ── MAP AREA (flex-1 with overflow-hidden) ──────────────────────── */}
+        {/* ── MAP SECTION — flex-1, Leaflet fills it ───────────────────────── */}
         <div className="relative flex-1 min-h-0 overflow-hidden">
+          {/* Leaflet map fills this container */}
+          <MarineLeafletMap
+            lat={geoPos.latitude}
+            lng={geoPos.longitude}
+            isLiveGps={geoPos.isLive === true}
+            pfzZones={displayPfzZones}
+            activeRoute={activeRoute}
+            selectedPFZId={selectedPFZ?.id}
+            isLoading={isMapLoading}
+            isNavigating={isNavigating}
+            onSelectPFZ={(pfz) => {
+              setSelectedPFZ(pfz);
+            }}
+            onNavigate={(pfz) => handleStartNavigation(pfz)}
+          />
 
-          {/* TacticalMap — fills this container, bottom is clipped if needed */}
-          <div className="absolute inset-0 overflow-hidden">
-            <TacticalMap
-              selectedPFZId={selectedPFZ?.id}
-              activeRoute={activeRoute}
-              onSelectPFZ={(pfz) => setSelectedPFZ(pfz)}
-              onAskOrcaPFZ={(pfz) =>
-                startFishermanTask(`Why is ${pfz.name} recommended today?`)
-              }
-              pfzZones={livePfzZones.length > 0 ? livePfzZones : undefined}
-              isLoading={isMapLoading}
-              centerLat={geoPos.latitude}
-              centerLng={geoPos.longitude}
-            />
-          </div>
+          {/* ── Floating status chips (bottom-left of map) ─────────────── */}
+          {(waveInfo || windInfo || sstInfo || safetyLevel) && (
+            <div className="absolute bottom-[110px] left-2 z-[500] flex gap-1 flex-wrap pointer-events-none">
+              {safetyLevel && (
+                <span className={[
+                  'text-[7.5px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center gap-1',
+                  safetyLevel === 'SAFE'
+                    ? 'bg-emerald-900/70 border-emerald-500/30 text-emerald-300'
+                    : safetyLevel === 'CAUTION'
+                    ? 'bg-amber-900/70 border-amber-500/30 text-amber-300'
+                    : 'bg-red-900/70 border-red-500/30 text-red-300',
+                ].join(' ')}>
+                  {safetyLevel === 'SAFE' ? '●' : safetyLevel === 'CAUTION' ? '◐' : '○'}{' '}
+                  {safetyLevel.replace('_', ' ')}
+                </span>
+              )}
+              {waveInfo && (
+                <span className="bg-[#06101e]/75 backdrop-blur-sm text-teal-300 text-[7.5px] font-mono px-2 py-0.5 rounded-full border border-teal-500/20 flex items-center gap-1">
+                  <Waves className="w-2 h-2" /> {waveInfo}
+                </span>
+              )}
+              {sstInfo && (
+                <span className="bg-[#06101e]/75 backdrop-blur-sm text-amber-300 text-[7.5px] font-mono px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                  <Thermometer className="w-2 h-2" /> {sstInfo}
+                </span>
+              )}
+            </div>
+          )}
 
-          {/* Navigation active overlay (top of map) */}
+          {/* ── Navigation active banner ───────────────────────────────── */}
           {isNavigating && selectedPFZ && (
-            <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between bg-[#06101e]/92 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-teal-500/30 shadow-xl">
+            <div className="absolute top-2 left-2 right-2 z-[600] flex items-center justify-between bg-[#06101e]/92 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-teal-500/30 shadow-xl">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-teal-600/20 border border-teal-500/40 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-teal-600/20 border border-teal-500/40 flex items-center justify-center">
                   <Navigation className="w-4 h-4 text-teal-400" />
                 </div>
                 <div>
@@ -452,7 +486,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                     {selectedPFZ.distanceKm} km · {selectedPFZ.direction}
                   </div>
                   <div className="text-teal-300/70 text-[9px] font-mono">
-                    {selectedPFZ.name.split(' ').slice(0, 3).join(' ')}
+                    {selectedPFZ.name.split(' ').slice(0, 4).join(' ')}
                   </div>
                 </div>
               </div>
@@ -465,90 +499,58 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
             </div>
           )}
 
-          {/* Selected PFZ info card (top-right, when not navigating) */}
-          {selectedPFZ && !isNavigating && (
-            <div className="absolute top-2 right-2 z-20 w-36 bg-[#06101e]/90 backdrop-blur-md rounded-2xl p-3 border border-emerald-500/25 shadow-xl">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Fish className="w-3 h-3 text-emerald-400" />
-                <span className="text-[8px] font-mono font-bold text-emerald-400 uppercase tracking-wide">
-                  Nearest PFZ
-                </span>
-              </div>
-              <div
-                className={[
-                  'inline-block text-[8px] px-1.5 py-0.5 rounded font-bold mb-2',
-                  selectedPFZ.suitabilityScore >= 80
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : selectedPFZ.suitabilityScore >= 60
-                    ? 'bg-amber-500/20 text-amber-300'
-                    : 'bg-orange-500/20 text-orange-300',
-                ].join(' ')}
-              >
-                {selectedPFZ.suitabilityScore >= 80
-                  ? 'High'
-                  : selectedPFZ.suitabilityScore >= 60
-                  ? 'Medium'
-                  : 'Low'}{' '}
-                Potential
-              </div>
-              <div className="text-white font-bold text-lg leading-none">
-                {selectedPFZ.distanceKm} km
-              </div>
-              <div className="text-white/50 text-[9px] font-mono mb-1">
-                {selectedPFZ.direction}
-              </div>
-              <div className="text-[8px] text-white/30 font-mono">
-                Conf: {selectedPFZ.confidenceScore}%
-              </div>
-              <button
-                onClick={handleStartNavigation}
-                className="mt-2.5 w-full py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-md"
-              >
-                <Navigation className="w-3 h-3" /> NAVIGATE
-              </button>
-            </div>
-          )}
+          {/* ── Nearest PFZ floating card (bottom of map) ─────────────── */}
+          {nearestPfz && !isNavigating && (
+            <div className="absolute bottom-2 left-2 right-2 z-[600] bg-[#0c1a2e]/95 backdrop-blur-md rounded-2xl border border-emerald-500/20 shadow-xl overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3">
+                {/* Icon + title */}
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
+                  <Fish className="w-5 h-5 text-emerald-400" />
+                </div>
 
-          {/* Status chips (bottom-left of map) */}
-          {(waveInfo || windInfo || sstInfo || safetyLevel) && (
-            <div className="absolute bottom-2 left-2 z-10 flex gap-1 flex-wrap">
-              {waveInfo && (
-                <span className="bg-[#06101e]/80 backdrop-blur-sm text-teal-300 text-[8px] font-mono px-2 py-0.5 rounded-full border border-teal-500/20 flex items-center gap-1">
-                  <Waves className="w-2.5 h-2.5" /> {waveInfo}
-                </span>
-              )}
-              {windInfo && (
-                <span className="bg-[#06101e]/80 backdrop-blur-sm text-sky-300 text-[8px] font-mono px-2 py-0.5 rounded-full border border-sky-500/20 flex items-center gap-1">
-                  <Wind className="w-2.5 h-2.5" /> {windInfo}
-                </span>
-              )}
-              {sstInfo && (
-                <span className="bg-[#06101e]/80 backdrop-blur-sm text-amber-300 text-[8px] font-mono px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
-                  <Thermometer className="w-2.5 h-2.5" /> {sstInfo}
-                </span>
-              )}
-              {safetyLevel && (
-                <span
-                  className={[
-                    'text-[8px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center gap-1',
-                    safetyLevel === 'SAFE'
-                      ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-300'
-                      : safetyLevel === 'CAUTION'
-                      ? 'bg-amber-500/15 border-amber-500/25 text-amber-300'
-                      : 'bg-red-500/15 border-red-500/25 text-red-300',
-                  ].join(' ')}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                    Nearest PFZ
+                  </div>
+                  <div className="text-white font-bold text-sm leading-tight truncate">
+                    {nearestPfz.name.split('(')[0].trim()}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-white font-bold text-base leading-none">
+                      {nearestPfz.distanceKm} km
+                    </span>
+                    <span className="text-white/40 text-[9px] font-mono">
+                      ↗ {nearestPfz.direction.split('(').pop()?.replace(')', '') || nearestPfz.direction}
+                    </span>
+                    <span className={[
+                      'text-[8px] px-1.5 py-0.5 rounded font-bold ml-auto',
+                      nearestPfz.suitabilityScore >= 80
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : nearestPfz.suitabilityScore >= 60
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-orange-500/20 text-orange-300',
+                    ].join(' ')}>
+                      {nearestPfz.confidenceScore}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Navigate button */}
+                <button
+                  onClick={() => handleStartNavigation(nearestPfz)}
+                  className="shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg"
                 >
-                  {safetyLevel === 'SAFE' ? '●' : safetyLevel === 'CAUTION' ? '◐' : '○'}{' '}
-                  {safetyLevel.replace('_', ' ')}
-                </span>
-              )}
+                  <Navigation className="w-3.5 h-3.5" />
+                  GO
+                </button>
+              </div>
             </div>
           )}
         </div>
 
         {/* ── NAVIGATION PANEL (replaces copilot while navigating) ─────────── */}
         {isNavigating && (
-          <div className="flex-none">
+          <div className="flex-none shrink-0">
             <NavigationPanel
               isActive={isNavigating}
               destination={
@@ -573,53 +575,54 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
 
         {/* ── BOTTOM AI COPILOT ─────────────────────────────────────────────── */}
         {!isNavigating && (
-          <div className="flex-none bg-[#06101e] border-t border-white/8 px-4 pt-3 pb-4 space-y-2.5">
+          <div className="flex-none shrink-0 bg-[#06101e] border-t border-white/8 px-4 pt-3 pb-safe-area-inset-bottom pb-4">
 
-            {/* AI response text + replay/stop */}
-            {lastAnswer && (
-              <div className="flex items-start gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-teal-400 mt-0.5 shrink-0" />
-                <p className="flex-1 text-[11px] text-white/65 leading-snug line-clamp-2">
+            {/* AI response area */}
+            <div className="flex items-start gap-2 mb-2.5">
+              <div className="w-6 h-6 rounded-lg bg-teal-600/20 border border-teal-500/25 flex items-center justify-center shrink-0 mt-0.5">
+                <Sparkles className="w-3 h-3 text-teal-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[8.5px] font-mono font-bold text-teal-400 uppercase tracking-wider mb-0.5">
+                  ✨ MATSYA AI
+                </div>
+                <p className="text-[11px] text-white/70 leading-snug line-clamp-2">
                   {lastAnswer}
                 </p>
-                {taskState !== 'SPEAKING' ? (
-                  <button
-                    onClick={() => {
-                      setTaskState('SPEAKING');
-                      MarineVoiceService.speak(lastAnswer, selectedLang, undefined, () => {
-                        setTaskState('COMPLETED');
-                        setTimeout(() => setTaskState('IDLE'), 600);
-                      });
-                    }}
-                    className="shrink-0 p-1 rounded-full text-teal-400/60 hover:text-teal-300 transition"
-                    title="Replay voice"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleStopSpeaking}
-                    className="shrink-0 p-1 rounded-full text-rose-400/70 hover:text-rose-300 transition"
-                    title="Stop speaking"
-                  >
-                    <Square className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </div>
-            )}
+              {taskState !== 'SPEAKING' ? (
+                <button
+                  onClick={() => {
+                    setTaskState('SPEAKING');
+                    MarineVoiceService.speak(lastAnswer, selectedLang, undefined, () => {
+                      setTaskState('COMPLETED');
+                      setTimeout(() => setTaskState('IDLE'), 600);
+                    });
+                  }}
+                  className="shrink-0 p-1.5 rounded-full text-teal-400/60 hover:text-teal-300 transition"
+                  title="Replay voice"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopSpeaking}
+                  className="shrink-0 p-1.5 rounded-full text-rose-400/70 hover:text-rose-300 transition"
+                  title="Stop speaking"
+                >
+                  <Square className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
             {/* Voice state indicator */}
             {(taskState === 'LISTENING' || isBusy || taskState === 'SPEAKING') && (
-              <div
-                className={[
-                  'text-[10px] font-mono flex items-center gap-1.5',
-                  taskState === 'LISTENING'
-                    ? 'text-rose-400'
-                    : taskState === 'SPEAKING'
-                    ? 'text-teal-300'
-                    : 'text-teal-400 animate-pulse',
-                ].join(' ')}
-              >
+              <div className={[
+                'text-[10px] font-mono flex items-center gap-1.5 mb-2',
+                taskState === 'LISTENING' ? 'text-rose-400'
+                : taskState === 'SPEAKING' ? 'text-teal-300'
+                : 'text-teal-400 animate-pulse',
+              ].join(' ')}>
                 {taskState === 'LISTENING' && (
                   <><Radio className="w-3 h-3 animate-pulse" />{voiceQuery || listeningText}</>
                 )}
@@ -632,8 +635,8 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
               </div>
             )}
 
-            {/* Quick query chips — horizontal scroll */}
-            <div className="overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {/* Quick query chips */}
+            <div className="overflow-x-auto mb-2.5" style={{ scrollbarWidth: 'none' }}>
               <div className="flex gap-1.5 pb-0.5" style={{ width: 'max-content' }}>
                 {(localQuickQueries[selectedLang] || localQuickQueries.en).map((q, i) => (
                   <button
@@ -648,10 +651,9 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
               </div>
             </div>
 
-            {/* Bottom row: Emergency | MIC | GPS */}
+            {/* Bottom row: Emergency | MIC | GPS retry */}
             <div className="flex items-center gap-2.5">
-
-              {/* Emergency call button */}
+              {/* Emergency call */}
               <button
                 className="w-12 h-12 rounded-2xl bg-rose-900/25 border border-rose-500/30 flex flex-col items-center justify-center gap-0.5 text-rose-400 hover:bg-rose-900/40 active:scale-95 transition shrink-0"
                 title="Indian Coast Guard Emergency: 1554"
@@ -665,7 +667,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                 <span className="text-[7px] font-bold font-mono">1554</span>
               </button>
 
-              {/* Main mic button */}
+              {/* Main mic / voice button */}
               <button
                 id="fisherman-main-mic-btn"
                 disabled={isBusy}
@@ -688,7 +690,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                 )}
               </button>
 
-              {/* GPS status / retry button */}
+              {/* GPS retry */}
               <button
                 onClick={retryGps}
                 className={[
@@ -708,9 +710,9 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
               </button>
             </div>
 
-            {/* Last trip summary (compact) */}
+            {/* Last trip summary */}
             {lastTrip && (
-              <div className="flex items-center gap-1.5 text-[9px] text-emerald-400/60 font-mono">
+              <div className="flex items-center gap-1.5 text-[9px] text-emerald-400/60 font-mono mt-2">
                 <CheckCircle2 className="w-3 h-3 shrink-0" />
                 <span>
                   Last: {lastTrip.pfzName} — {lastTrip.distanceKm.toFixed(1)} km,{' '}
