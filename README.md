@@ -1,7 +1,7 @@
 # MATSYA AI — Intelligent Marine Decision Support System
 ### Smart India Hackathon 2024 · Problem Statement 26176
 
-MATSYA AI is a full-stack, voice-first marine intelligence platform that helps Indian fishermen make safe and profitable decisions using real satellite data, machine learning, and multi-agent AI orchestration. It also provides an operations center view for INCOIS/Coast Guard analysts.
+MATSYA AI is a full-stack, voice-first marine intelligence platform that helps Indian fishermen make safe and profitable decisions using real satellite data, machine learning, and multi-agent AI orchestration. It also provides an operations center view for INCOIS/Coast Guard analysts and a public coastal dashboard for anyone.
 
 ---
 
@@ -12,7 +12,8 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 3. [Feature Workflows — Behind the Scenes](#feature-workflows)
    - [PFZ — Potential Fishing Zone Detection](#pfz-workflow)
    - [Multi-Agent Orchestration](#multi-agent-workflow)
-   - [Voice AI Assistant](#voice-ai-workflow)
+   - [Voice AI Assistant (Browser + Cloud STT)](#voice-ai-workflow)
+   - [Marine Alert System](#alert-workflow)
    - [Geofence & Boundary Alerts](#geofence-workflow)
    - [Weather Safety Assessment](#weather-workflow)
    - [Safe Route Planning](#route-workflow)
@@ -21,6 +22,7 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 5. [ML Model](#ml-model)
 6. [Authentication & History](#auth)
 7. [Running the Project](#running)
+8. [Demo Guide for Judges](#demo)
 
 ---
 
@@ -28,15 +30,15 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 
 | Technology | Version | Role in MATSYA AI |
 |---|---|---|
-| **React 19** | v19.0.1 | UI framework for all views — Fisherman cockpit, Operations Center, Landing Dashboard |
+| **React 19** | v19.0.1 | UI framework — Fisherman cockpit, Operations Center, Landing Dashboard, Public Dashboard |
 | **TypeScript** | ~5.8 | Type-safe code across frontend and backend |
 | **Vite 6** | v6.2 | Frontend bundler and dev server with HMR |
 | **Tailwind CSS 4** | v4.1 | Utility-first styling; dark marine theme |
 | **Framer Motion (motion)** | v12 | Cinematic animations on the landing page and hero section |
-| **Leaflet + react-leaflet** | v1.9 / v5.0 | Interactive 2D map with GPS pin, PFZ zone markers, route polylines in the Fisherman view |
+| **Leaflet + react-leaflet** | v1.9 / v5.0 | Interactive 2D map with GPS pin, PFZ zone markers, alert markers, route polylines |
 | **Three.js** | v0.185 | 3D WebGL ocean globe rendered in the Operations Center / Global Explorer view |
 | **Lucide React** | v0.546 | Icon library across all UI components |
-| **Express.js** | v4.21 | Node.js HTTP server — serves 16 REST API endpoints and Vite SSR middleware |
+| **Express.js** | v4.21 | Node.js HTTP server — serves 22+ REST API endpoints and Vite SSR middleware |
 | **tsx** | v4.21 | Runs TypeScript server code directly without pre-compilation in dev |
 | **esbuild** | v0.25 | Bundles server.ts for production |
 | **Python 3 + FastAPI** | FastAPI 2.0 | Standalone ML microservice that serves the RandomForest PFZ classifier |
@@ -45,13 +47,14 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 | **Pandas + NumPy** | — | Feature engineering and batch inference inside the Python ML service |
 | **joblib** | — | Serializes/deserializes the trained model (`.joblib` file) |
 | **Pydantic v2** | — | Input validation with physical range checks on SST, gradient, chlorophyll |
-| **@google/genai** | v2.4 | Gemini LLM SDK — used optionally in Agent 4 for natural-language enrichment |
-| **bcrypt** | v6.0 | Password hashing for the auth system |
-| **jsonwebtoken** | v9.0 | JWT-based session tokens for fisherman/analyst login |
-| **pg (node-postgres)** | v8.23 | PostgreSQL driver; falls back to in-memory store if DB is absent |
+| **@google/genai** | v2.4 | Gemini LLM SDK — Agent 4 NL enrichment + Cloud STT audio transcription |
+| **bcrypt** | v6.0 | Password hashing (12 rounds) for the auth system |
+| **jsonwebtoken** | v9.0 | JWT-based session tokens (7-day expiry) for fisherman/analyst login |
+| **pg (node-postgres)** | v8.23 | PostgreSQL driver; falls back to in-memory store if DATABASE_URL is not set |
 | **dotenv** | v17 | Environment variable management (API keys, DB connection strings) |
-| **Web Speech API** | Browser built-in | Voice recognition (STT) and text-to-speech (TTS) for 11 Indian languages |
-| **Web Audio API** | Browser built-in | Audio beep feedback on mic start |
+| **Web Speech API** | Browser built-in | Primary voice recognition (STT) and text-to-speech (TTS) for 11 Indian languages |
+| **MediaRecorder API** | Browser built-in | Audio recording fallback when browser STT is unsupported |
+| **Web Audio API** | Browser built-in | Audio beep feedback on mic start/stop |
 | **Geolocation API** | Browser built-in | Live GPS coordinates via `navigator.geolocation.watchPosition` |
 | **ERDDAP Protocol** | Standard | REST-based scientific data access protocol used to query NCEI, INCOIS, PIFSC servers |
 | **concurrently** | v9.2 | Runs Express + Uvicorn in parallel with a single `npm run dev:full` command |
@@ -66,9 +69,15 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 │                                                                             │
 │  FishermanView          OperationsCenterView        LandingDashboard        │
 │  ├─ Leaflet Map          ├─ Three.js Globe           ├─ CinematicOceanHero  │
-│  ├─ Voice (Web STT/TTS)  ├─ AgentGraph              ├─ GlobalOceanGlobe     │
-│  ├─ NavigationPanel      ├─ CausalAnalysisPanel      └─ HeaderNavbar        │
+│  ├─ Voice (Web STT/TTS   ├─ AgentGraph              ├─ GlobalOceanGlobe     │
+│  │   + Cloud STT fallback)├─ CausalAnalysisPanel    └─ HeaderNavbar        │
+│  ├─ NavigationPanel      └─ Risk Dashboard                                  │
 │  └─ Quick Queries (ta/hi/te/en)                                             │
+│                                                                             │
+│  PublicDashboardView    LoginView / SignupView                               │
+│  ├─ Leaflet Alert Map    ├─ bcrypt + JWT auth                                │
+│  ├─ Live Marine Data     └─ Role-based routing                               │
+│  └─ Alert Feed                                                               │
 └───────────────────────────────┬────────────────────────────────────────────┘
                                 │  REST API (JSON over HTTP)
                                 ▼
@@ -82,8 +91,12 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 │  POST /api/geofence/check       ← Boundary proximity check                  │
 │  POST /api/route/safe           ← Route planning                            │
 │  POST /api/pfz/predict          ← Proxy to Python ML service                │
-│  POST /api/auth/*               ← Login / Signup                            │
+│  POST /api/auth/*               ← Login / Signup / Profile                  │
 │  GET  /api/history/*            ← Trip & analysis history                   │
+│  GET  /api/public/*             ← Public dashboard & alert feed (no auth)   │
+│  ANY  /api/user/*               ← Authenticated user locations & notifs     │
+│  POST /api/voice/transcribe     ← Cloud STT via Gemini/Google/Whisper       │
+│  GET  /api/health/database      ← DB mode + table status                    │
 │                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │              FOUR-AGENT ORCHESTRATION PIPELINE                       │  │
@@ -93,6 +106,21 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 │  │  Agent 3: Spatial & Risk AI — geofence, route planning               │  │
 │  │  Agent 4: Synthesis & Voice AI — NL response + Gemini enrichment     │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │              ALERT ENGINE (server/services/alertEngine.ts)           │  │
+│  │  Evaluates live wave/wind → generates StoredMarineAlert records      │  │
+│  │  Deduplication via dedup_key (type:region:severity)                  │  │
+│  │  Storage: PostgreSQL (production) or in-memory Map (dev)             │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │              CLOUD STT SERVICE (server/services/sttService.ts)       │  │
+│  │  Primary: Gemini 1.5/2.0 Flash — multimodal audio inlineData         │  │
+│  │  Fallback: Google Cloud Speech-to-Text                               │  │
+│  │  Fallback: OpenAI Whisper                                            │  │
+│  │  API keys backend-only — never exposed to browser                    │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────┬────────────────────────────────────────────┘
           ┌────────────────────┼───────────────────────────┐
           ▼                    ▼                           ▼
@@ -100,10 +128,11 @@ MATSYA AI is a full-stack, voice-first marine intelligence platform that helps I
 │  Python FastAPI │  │  External ERDDAP APIs│  │  PostgreSQL / In-Memory│
 │  ML Service     │  │                      │  │  Database              │
 │  :8000          │  │  NCEI OISST (SST)    │  │                        │
-│                 │  │  PIFSC ESA-CCI (CHL) │  │  Users, Sessions,      │
-│  RandomForest   │  │  INCOIS Argo (SST)   │  │  Analysis History      │
-│  Classifier     │  │  Open-Meteo Marine   │  │                        │
-│  .joblib        │  │  (Waves/Wind/Current)│  │                        │
+│                 │  │  PIFSC ESA-CCI (CHL) │  │  users                 │
+│  RandomForest   │  │  INCOIS Argo (SST)   │  │  user_locations        │
+│  Classifier     │  │  Open-Meteo Marine   │  │  marine_alerts         │
+│  .joblib        │  │  (Waves/Wind/Current)│  │  user_alerts           │
+│                 │  │                      │  │  notification_history  │
 └─────────────────┘  └──────────────────────┘  └────────────────────────┘
 ```
 
@@ -137,7 +166,7 @@ Step 2 — Satellite Data Fetch (parallel, server-side)
   │     URL: oceanwatch.pifsc.noaa.gov/erddap/  │
   │          griddap/esa-cci-chla-8d-v6-0.json  │
   │     Returns: 0.042° (~4 km) CHL grid        │
-  │     8-day composite composite               │
+  │     8-day composite                         │
   │                                             │
   │ 2c. SST Gradient                            │
   │     Computed via finite differences from    │
@@ -264,52 +293,123 @@ Final response includes:
 
 ---
 
-### 3.3 Voice AI Assistant <a name="voice-ai-workflow"></a>
+### 3.3 Voice AI Assistant — Browser STT + Cloud STT Fallback <a name="voice-ai-workflow"></a>
 
 **What the user sees:** Press mic button → speak in Tamil/Hindi/Telugu/etc → hear a spoken answer.
 
 **What happens behind the scenes:**
 
 ```
-STT (Speech-to-Text):
-  Browser's Web Speech API (SpeechRecognition / webkitSpeechRecognition)
-  Language mapping:
-    ta → ta-IN (Tamil)    hi → hi-IN (Hindi)
-    te → te-IN (Telugu)   ml → ml-IN (Malayalam)
-    kn → kn-IN (Kannada)  en → en-IN (English)
+PRIMARY PATH — Browser Web Speech API
+──────────────────────────────────────
+  SpeechRecognition / webkitSpeechRecognition
+  Language mapping (BCP-47):
+    ta → ta-IN    hi → hi-IN    te → te-IN
+    ml → ml-IN    kn → kn-IN    bn → bn-IN
+    mr → mr-IN    gu → gu-IN    pa → pa-IN
+    or → or-IN    en → en-IN
 
-  Safari workaround: captures bestTranscript from all interim results
-  because Safari never fires isFinal=true before onend.
+  Pre-warm on mount:
+    requestMicPermission() — avoids mid-sentence Safari dialog
+    preloadVoices()        — loads TTS voice list async
 
-  When recognition ends → text passed to startFishermanTask()
+  Safari workarounds:
+    - bestTranscript fallback: captures best interim since
+      Safari never fires isFinal=true before onend
+    - 80ms delay between cancel() and speak() for TTS queue flush
+    - Uses stop() not abort() so final results get through
 
-Multi-Agent call:
-  runAgentOrchestration(query, language, {lat, lng})
-  → POST /api/agents/orchestrate
-  → Full 4-agent pipeline (described above)
+AUTOMATIC CLOUD STT FALLBACK
+──────────────────────────────────────
+  Triggered when:
+    - Browser has no SpeechRecognition support (Firefox, some iOS)
+    - Error: not_supported / language_not_supported / start_failed
+
+  Flow:
+  1. Mic button turns amber → "Recording · Tap to stop"
+  2. MediaRecorder captures audio/webm (or audio/mp4 on iOS)
+  3. User taps mic again → recording stops
+  4. Audio base64-encoded → POST /api/voice/transcribe
+     { audioBase64, mimeType, languageCode }
+  5. Backend sttService.ts selects provider:
+     - GEMINI (default if GEMINI_API_KEY set)
+       → Gemini 2.0 Flash / 1.5 Flash multimodal audio inlineData
+       → Returns ONLY transcript text, no hallucinations
+     - GOOGLE (STT_PROVIDER=google + STT_API_KEY)
+       → Google Cloud Speech-to-Text v1 REST
+     - OPENAI  (STT_PROVIDER=openai + STT_API_KEY)
+       → OpenAI Whisper-1
+  6. Response: { transcript, language, provider, confidence }
+     (API keys never returned — backend-only)
+  7. Transcript sent to agent pipeline — same as browser path
 
 TTS (Text-to-Speech):
   Web Speech Synthesis API (SpeechSynthesisUtterance)
-  Uses result.spokenText (short, natural phrasing)
-  Picks a matching voice for the selected language
-  Rate: 0.88 (slightly slower for clarity)
+  Voice selection priority:
+    1. Exact locale match (e.g., ta-IN)
+    2. Same language, any region (e.g., ta-SG)
+    3. en-IN fallback for scripts with no native voice
+    4. Any available voice
 
-  Safari workaround: 80ms delay between cancel() and speak()
-  to flush synthesis queue before enqueuing new utterance.
+Languages: Tamil, Hindi, Telugu, Malayalam, Kannada,
+           Bengali, Marathi, Gujarati, Punjabi, Odia, English
 
-Languages spoken: Tamil, Hindi, Telugu, Malayalam,
-                  Kannada, Bengali, Marathi, Gujarati,
-                  Punjabi, Odia, English
-
-Fallback (MediaRecorder + Gemini STT):
-  If webkitSpeechRecognition is unavailable, records audio
-  as audio/webm (or audio/mp4 on iOS), sends base64 to
-  POST /api/voice/transcribe → Gemini transcription
+Diagnostics panel (⚙ icon):
+  Shows: Browser STT status, Active provider (BROWSER / CLOUD),
+  Microphone permission, Voices loaded, Last transcript, Last error
 ```
 
 ---
 
-### 3.4 Geofence & Boundary Alerts <a name="geofence-workflow"></a>
+### 3.4 Marine Alert System <a name="alert-workflow"></a>
+
+**What the user sees:** Public Dashboard shows a live alert feed with severity badges. Fisherman View shows emergency alerts when dangerous conditions are detected.
+
+**What happens behind the scenes:**
+
+```
+Alert Engine (server/services/alertEngine.ts):
+  Triggered by:
+    - POST /api/public/alerts/evaluate (on-demand)
+    - GET  /api/public/dashboard (fire-and-forget background)
+
+  Step 1 — Live data fetch
+    globalWeatherSafetyAgent.evaluateLive({ lat, lng })
+    → Open-Meteo Marine API → real wave height + wind speed
+
+  Step 2 — Threshold evaluation
+    Wave alerts:
+      wave ≥ 3.5 m → WAVE_DANGER   (VERY_HIGH)  — Return to port immediately
+      wave ≥ 2.5 m → WAVE_WARNING  (HIGH)        — Small craft advisory
+      wave ≥ 1.5 m → WAVE_CAUTION  (MODERATE)    — Caution for small vessels
+
+    Wind alerts:
+      wind ≥ 40 km/h → WIND_WARNING  (HIGH)      — Gale force, do not put to sea
+      wind ≥ 25 km/h → WIND_ADVISORY (MODERATE)  — Small vessel caution
+
+  Step 3 — Deduplication
+    Each alert has a dedup_key: "TYPE:REGION:SEVERITY"
+    ON CONFLICT (dedup_key) DO UPDATE — no duplicate alerts for same condition
+
+  Step 4 — Storage
+    PostgreSQL (production): marine_alerts table with full schema
+    In-memory Map (dev): same structure, resets on restart
+
+Alert retrieval:
+  GET /api/public/alerts        → active alerts only
+  GET /api/public/alerts/history?limit=N → full history
+
+Alert schema:
+  { id, alert_type, severity, title, message,
+    latitude, longitude, region,
+    wave_height, wind_speed, sst,
+    source, is_active, dedup_key,
+    created_at, expires_at }
+```
+
+---
+
+### 3.5 Geofence & Boundary Alerts <a name="geofence-workflow"></a>
 
 **What the user sees:** Live map chip shows distance to nearest restricted zone. If vessel approaches, voice alarm fires in local language.
 
@@ -346,7 +446,7 @@ Cooldown: Same vessel won't get duplicate alerts within 60 seconds
 
 ---
 
-### 3.5 Weather Safety Assessment <a name="weather-workflow"></a>
+### 3.6 Weather Safety Assessment <a name="weather-workflow"></a>
 
 **What the user sees:** Safety card showing wave height, wind speed, risk level (SAFE / CAUTION / HIGH_RISK / DANGEROUS), departure window recommendation.
 
@@ -374,7 +474,7 @@ Departure Window Recommendation:
   wave < 1.2m → "Favourable conditions"
 
 Operational Advice (vessel type):
-  Artisanal craft:   PERMITTED / EXERCISE_CAUTION / PROHIBITED
+  Artisanal craft:    PERMITTED / EXERCISE_CAUTION / PROHIBITED
   Mechanized trawler: PERMITTED / EXERCISE_CAUTION / PROHIBITED
 
 Spoken advisory in 6 languages (Tamil, Hindi, Telugu, Malayalam, Kannada, English)
@@ -382,7 +482,7 @@ Spoken advisory in 6 languages (Tamil, Hindi, Telugu, Malayalam, Kannada, Englis
 
 ---
 
-### 3.6 Safe Route Planning <a name="route-workflow"></a>
+### 3.7 Safe Route Planning <a name="route-workflow"></a>
 
 **What the user sees:** "Show safe route to PFZ" → step-by-step waypoints with distance and estimated time.
 
@@ -419,7 +519,7 @@ Departure recommendation: derived from live wave data
 
 ---
 
-### 3.7 Historical Causal Analytics <a name="causal-workflow"></a>
+### 3.8 Historical Causal Analytics <a name="causal-workflow"></a>
 
 **What the user sees:** "Why has fish catch declined?" → 4-tier evidence chart with satellite data, statistical correlations, environmental hypotheses, and AI synthesis.
 
@@ -519,29 +619,50 @@ PFZ = 0  otherwise
 
 ## 6. Authentication & History <a name="auth"></a>
 
-**Technology:** bcrypt (password hashing) + JWT (session tokens) + PostgreSQL (persistent) or in-memory fallback.
+**Technology:** bcrypt (12 rounds) + JWT (7-day expiry) + PostgreSQL (persistent) or in-memory fallback.
 
 ```
+Database schema:
+  users             — id, email, password_hash, full_name, role,
+                      phone, preferred_language, is_verified, last_login_at
+  user_locations    — saved coastal locations per user
+  marine_alerts     — active + historical alert records with dedup_key
+  user_alerts       — alert-to-user mapping for notifications
+  notification_history — sent notification log
+
 Signup flow:
   POST /api/auth/signup
-  → bcrypt.hash(password, 10)
-  → INSERT INTO users (name, email, password_hash, role)
-  → Returns JWT token (24h expiry)
+  → bcrypt.hash(password, 12)
+  → INSERT INTO users (name, email, password_hash, role, phone, preferred_language)
+  → Returns JWT token (7-day expiry)
+  → password_hash NEVER returned in any API response
 
 Login flow:
   POST /api/auth/login
   → bcrypt.compare(password, hash)
-  → Returns JWT token
+  → Returns JWT token + safe user object (no hash)
+
+Scientist verification gate:
+  role = ISRO_SCIENTIST requires is_verified = true
+  Unverified scientists see a "Pending Verification" screen
+  instead of the Operations Center
 
 Protected routes:
   optionalAuth middleware decodes JWT from Authorization header
-  Authenticated users get their analysis history saved automatically
+  Authenticated users get analysis history saved automatically
 
 History:
   POST /api/agents/orchestrate (authenticated)
   → saveAnalysis() stores: query, intent, location, answerSummary,
     dataStatus, pfzCount, waveHeight, timestamp
   GET /api/history/:userId → returns last 50 analyses
+
+Security rules:
+  - Passwords NEVER stored as plaintext
+  - Passwords NEVER in localStorage
+  - API keys NEVER in frontend code
+  - password_hash NEVER in API responses
+  - DATABASE_URL NEVER committed
 ```
 
 ---
@@ -551,16 +672,22 @@ History:
 ### Prerequisites
 - Node.js ≥ 18
 - Python ≥ 3.9
-- A Gemini API key (optional, for NL enrichment)
+- A Gemini API key (optional — enables NL enrichment + Cloud STT)
 
 ### Environment Variables
 
-Create `.env` from `.env.example`:
+Copy `.env.example` to `.env` and fill in values:
+```bash
+cp .env.example .env
 ```
-GEMINI_API_KEY=your_key_here
+
+Key variables:
+```
+GEMINI_API_KEY=your_key_here      # enables AI responses + cloud STT fallback
 PORT=3000
 ML_SERVICE_URL=http://localhost:8000
-DATABASE_URL=postgresql://user:pass@localhost:5432/matsya   # optional
+JWT_SECRET=change_this_in_production
+DATABASE_URL=postgresql://...     # optional — omit for in-memory dev mode
 ```
 
 ### Install & Run
@@ -572,7 +699,7 @@ npm install
 # Create Python virtual environment and install
 cd ml-service
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # (Optional) Retrain the ML model
@@ -584,28 +711,39 @@ npm run dev:full
 # Or separately:
 npm run dev          # Express + Vite on :3000
 npm run ml           # FastAPI ML service on :8000
+
+# Inspect the database (dev only)
+npm run db:inspect
 ```
 
 ### API Endpoints Quick Reference
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/agents/orchestrate` | POST | Master AI query endpoint |
-| `/api/ocean/location` | GET | Real-time ocean data for GPS coordinates |
-| `/api/pfz/live` | GET | Live ML PFZ pipeline |
-| `/api/pfz/predict` | POST | Single-point ML prediction |
-| `/api/pfz/predict/batch` | POST | Batch ML prediction |
-| `/api/weather/analyze` | POST | Weather safety assessment |
-| `/api/weather/marine` | GET | Marine weather adapter |
-| `/api/geofence/check` | POST | Boundary proximity check |
-| `/api/geofence/monitor` | POST | Proactive vessel monitoring |
-| `/api/route/safe` | POST | Safe route planning |
-| `/api/history/analyze` | POST | Historical causal analytics |
-| `/api/vector/search` | POST | Scientific literature search |
-| `/api/auth/signup` | POST | User registration |
-| `/api/auth/login` | POST | User login |
-| `/api/history/:userId` | GET | Analysis history |
-| `/api/agent/trace/:id` | GET | Agent execution trace |
+| Endpoint | Method | Auth | Purpose |
+|---|---|---|---|
+| `/api/agents/orchestrate` | POST | optional | Master AI query endpoint |
+| `/api/ocean/location` | GET | — | Real-time ocean data for GPS coordinates |
+| `/api/pfz/live` | GET | — | Live ML PFZ pipeline |
+| `/api/pfz/predict` | POST | — | Single-point ML prediction |
+| `/api/pfz/predict/batch` | POST | — | Batch ML prediction |
+| `/api/weather/analyze` | POST | — | Weather safety assessment |
+| `/api/weather/marine` | GET | — | Marine weather adapter |
+| `/api/geofence/check` | POST | — | Boundary proximity check |
+| `/api/geofence/monitor` | POST | — | Proactive vessel monitoring |
+| `/api/route/safe` | POST | — | Safe route planning |
+| `/api/history/analyze` | POST | — | Historical causal analytics |
+| `/api/vector/search` | POST | — | Scientific literature search |
+| `/api/auth/signup` | POST | — | User registration |
+| `/api/auth/login` | POST | — | User login |
+| `/api/history/:userId` | GET | JWT | Analysis history |
+| `/api/agent/trace/:id` | GET | — | Agent execution trace |
+| `/api/public/dashboard` | GET | — | Live marine data for any location |
+| `/api/public/alerts` | GET | — | Active marine alerts |
+| `/api/public/alerts/history` | GET | — | Alert history |
+| `/api/public/alerts/evaluate` | POST | — | Trigger live alert evaluation |
+| `/api/user/locations` | GET/POST | JWT | Saved user locations |
+| `/api/user/locations/:id` | DELETE | JWT | Remove a saved location |
+| `/api/voice/transcribe` | POST | — | Cloud STT (Gemini/Google/Whisper) |
+| `/api/health/database` | GET | — | DB mode + table status |
 
 ---
 
@@ -613,11 +751,55 @@ npm run ml           # FastAPI ML service on :8000
 
 | View | Persona | Key Features |
 |---|---|---|
-| **FishermanView** | Artisanal fisherman | Voice assistant (11 languages), Leaflet GPS map, PFZ markers, navigation, emergency call (1554) |
-| **OperationsCenterView** | INCOIS / Coast Guard analyst | 4-agent trace visualization, evidence panel, causal analytics, risk dashboard |
-| **LandingDashboard** | General public | Cinematic ocean hero (video), 3D globe, data showcases |
+| **FishermanView** | Artisanal fisherman | Voice assistant (11 languages + cloud STT fallback), Leaflet GPS map, PFZ markers, navigation panel, emergency call (1554) |
+| **OperationsCenterView** | INCOIS / Coast Guard analyst (verified) | 4-agent trace visualization, evidence panel, causal analytics, risk dashboard |
+| **LandingDashboard** | General public | Cinematic ocean hero (video), 3D globe, data showcases, role-based entry |
+| **PublicDashboardView** | Coastal communities | Live wave/wind/SST/chlorophyll cards, Leaflet alert map, active alert feed, location selector |
 | **AskOrcaView** | Any user | Direct text query to the orchestration engine |
-| **PublicDashboardView** | Coastal communities | Weather, fishing suitability, news feed |
+| **LoginView / SignupView** | All users | Secure auth — bcrypt + JWT, no plaintext passwords |
+
+---
+
+## 8. Demo Guide for Judges <a name="demo"></a>
+
+### Start the server
+```bash
+npm run dev        # starts on http://localhost:3000
+```
+
+### Demo the Alert System (conditions are calm today — use the demo injector)
+
+Inject 3 realistic high-severity alerts into the in-memory store:
+```bash
+curl -X POST http://localhost:3000/api/public/demo/inject-alerts
+```
+
+Then open **http://localhost:3000** → click **"Coastal Dashboard"** (Public User card) → the alert feed shows:
+- 🔴 VERY_HIGH — Dangerous Wave Conditions (4.2 m) — Bay of Bengal
+- 🟠 HIGH — Gale-Force Wind Warning (67 km/h) — Coromandel Coast
+- 🟠 HIGH — High Wave Warning (2.8 m) — Kanyakumari Coast
+
+Verify via API:
+```bash
+curl http://localhost:3000/api/public/alerts
+```
+
+> This demo endpoint is blocked in production (`NODE_ENV=production`). In real deployment, alerts are generated automatically when live wave/wind data crosses thresholds.
+
+### Demo Voice AI (Fisherman View)
+1. Open http://localhost:3000 → "Fisherman" card
+2. Select language (Tamil, Hindi, Telugu, etc.)
+3. Tap the mic → speak a question
+4. If browser STT fails → mic turns **amber** → "Recording · Tap to stop" → cloud STT via Gemini activates automatically
+
+### Demo PFZ (Potential Fishing Zones)
+- Tap "Where can I fish today?" quick chip
+- Live satellite data pipeline runs → green zone markers appear on the Leaflet map
+
+### Check database health
+```bash
+curl http://localhost:3000/api/health/database
+```
 
 ---
 
