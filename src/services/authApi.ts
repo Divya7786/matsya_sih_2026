@@ -88,3 +88,69 @@ export async function apiGetAnalysisHistory(): Promise<any[]> {
   const json = await res.json();
   return json.analyses ?? [];
 }
+
+// ── Saved Locations ────────────────────────────────────────────────────────
+
+export async function apiGetLocations(): Promise<any[]> {
+  const res = await fetch('/api/user/locations', { headers: authHeaders() });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.locations ?? [];
+}
+
+export async function apiSaveLocation(data: {
+  name: string;
+  latitude: number;
+  longitude: number;
+  is_default?: boolean;
+}): Promise<any | null> {
+  const res = await fetch('/api/user/locations', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.location ?? null;
+}
+
+export async function apiDeleteLocation(locationId: string): Promise<boolean> {
+  const res = await fetch(`/api/user/locations/${locationId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  return res.ok;
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+export async function apiGetNotifications(): Promise<{ notifications: any[]; unreadCount: number }> {
+  const res = await fetch('/api/user/notifications', { headers: authHeaders() });
+  if (!res.ok) return { notifications: [], unreadCount: 0 };
+  return res.json();
+}
+
+export async function apiMarkNotificationRead(alertId: string): Promise<boolean> {
+  const res = await fetch(`/api/user/notifications/${alertId}/read`, {
+    method: 'PUT',
+    headers: authHeaders(),
+  });
+  return res.ok;
+}
+
+// ── Public Marine Data ─────────────────────────────────────────────────────
+
+export async function apiGetPublicDashboard(lat: number, lng: number, region?: string): Promise<any | null> {
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+  if (region) params.set('region', region);
+  const res = await fetch(`/api/public/dashboard?${params}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function apiGetActiveAlerts(): Promise<any[]> {
+  const res = await fetch('/api/public/alerts');
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.alerts ?? [];
+}

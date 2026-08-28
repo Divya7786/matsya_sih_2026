@@ -200,10 +200,10 @@ export const CinematicOceanHero: React.FC<CinematicOceanHeroProps> = ({
           </div>
 
           {/* CARD 3 — PUBLIC / COASTAL USER */}
-          <div 
+          <div
             onClick={() => {
               soundEffects.play('click');
-              onNavigate('ocean');
+              onNavigate('public-dashboard');
             }}
             className="group bg-white rounded-2xl border border-neutral-200 shadow-xl hover:shadow-2xl hover:border-sky-600 transition-all duration-300 transform hover:-translate-y-2 flex flex-col overflow-hidden cursor-pointer"
           >
@@ -219,14 +219,14 @@ export const CinematicOceanHero: React.FC<CinematicOceanHeroProps> = ({
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              
+
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-white/50 text-[11px] font-mono font-bold text-sky-900">
                 <Globe className="w-3.5 h-3.5 text-sky-700" />
-                <span>GLOBAL 3D GIS</span>
+                <span>COASTAL DASHBOARD</span>
               </div>
 
               <div className="absolute bottom-3 left-3 right-3 text-white">
-                <span className="text-[11px] font-mono text-sky-200 block uppercase tracking-wider">Planetary Explorer</span>
+                <span className="text-[11px] font-mono text-sky-200 block uppercase tracking-wider">Marine Conditions & Alerts</span>
                 <h3 className="text-xl font-bold text-white tracking-tight">PUBLIC / COASTAL USER</h3>
               </div>
             </div>
@@ -235,20 +235,20 @@ export const CinematicOceanHero: React.FC<CinematicOceanHeroProps> = ({
             <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <p className="text-xs font-mono font-bold text-sky-700 uppercase">
-                  "Understand your ocean."
+                  "Stay safe. Stay informed."
                 </p>
                 <p className="text-sm text-[#333333] leading-relaxed">
-                  Explore ocean conditions, marine weather, coastal hazards, current events, research and interactive global ocean data.
+                  Live wave heights, wind, sea temperature, marine risk levels, active safety alerts and coastal hazard notifications — no login required.
                 </p>
               </div>
 
               <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-[#111111] group-hover:text-sky-700 transition flex items-center gap-1.5">
-                  <span>EXPLORE OCEAN</span>
+                  <span>OPEN DASHBOARD</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-sky-50 font-mono text-sky-700 font-bold">
-                  Interactive 3D
+                  Free Access
                 </span>
               </div>
             </div>

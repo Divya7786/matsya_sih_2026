@@ -224,16 +224,29 @@ export function App() {
         )}
 
         {currentView === 'operations-center' && (
-          authState.isAuthenticated ? (
+          !authState.isAuthenticated ? (
+            <LoginView
+              onLoginSuccess={handleRealLoginSuccess}
+              onNavigate={handleNavigate}
+            />
+          ) : (authState.user?.role === 'ISRO_SCIENTIST' || authState.user?.role === 'MARINE_ANALYST' || authState.user?.role === 'COAST_GUARD') && !(authState.user as any)?.is_verified ? (
+            <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center p-6">
+              <div className="max-w-md w-full bg-white rounded-2xl border border-[#E5E5E5] shadow-lg p-8 text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+                  <svg className="w-7 h-7 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/></svg>
+                </div>
+                <h2 className="text-lg font-bold text-[#111111]">Account Pending Verification</h2>
+                <p className="text-sm text-[#555555]">Scientist and Analyst accounts require admin verification before accessing the Operations Center. Please contact your ISRO/MoES supervisor.</p>
+                <button onClick={() => handleNavigate('home')} className="px-4 py-2 bg-[#111111] text-white rounded-lg text-sm font-semibold hover:bg-black transition">
+                  Back to Home
+                </button>
+              </div>
+            </div>
+          ) : (
             <OperationsCenterView
               user={authState.user!}
               onNavigate={handleNavigate}
               onOpenVoiceModal={handleOpenVoiceModal}
-            />
-          ) : (
-            <LoginView
-              onLoginSuccess={handleRealLoginSuccess}
-              onNavigate={handleNavigate}
             />
           )
         )}

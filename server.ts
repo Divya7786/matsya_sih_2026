@@ -14,9 +14,11 @@ import { globalVectorStore } from './server/db/vectorStore';
 import { TOOL_REGISTRY, getToolsForIntent } from './server/agents/toolRegistry';
 import { fetchMarineLive, fetchSstWithGradient } from './server/data/openMeteoMarineClient';
 import { fetchNceiSst, fetchPifscChlorophyll } from './server/data/incoisErddapClient';
-import { runMigrations } from './server/db/postgres';
+import { runMigrations, dbHealthCheck, dbGetSafeUsers, useInMemory } from './server/db/postgres';
 import { authRouter } from './server/routes/auth';
 import { historyRouter, saveAnalysis } from './server/routes/history';
+import { publicRouter } from './server/routes/publicRoutes';
+import { userRouter } from './server/routes/userRoutes';
 import { optionalAuth } from './server/middleware/auth';
 
 dotenv.config();
@@ -26,9 +28,37 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT as string, 10) : 3000;
 
 app.use(express.json());
 
-// Auth & History routes
+// Auth, History, Public & User routes
 app.use('/api/auth', authRouter);
 app.use('/api/history', historyRouter);
+app.use('/api/public', publicRouter);
+app.use('/api/user', userRouter);
+
+// 0. Database health check (dev-only inspection; never exposes credentials)
+app.get('/api/health/database', async (_req, res) => {
+  const health = await dbHealthCheck();
+  res.json({
+    status: health.connected || health.mode === 'in-memory' ? 'ok' : 'error',
+    database: health.mode,
+    connected: health.connected || health.mode === 'in-memory',
+    mode: health.mode,
+    databaseName: health.databaseName,
+    tables: health.tables,
+    userCount: health.userCount,
+    note: health.mode === 'in-memory'
+      ? 'Running in-memory. Set DATABASE_URL in .env to enable PostgreSQL persistence.'
+      : 'Connected to PostgreSQL.',
+  });
+});
+
+// Dev-only: safe user list (no passwords, no secrets)
+app.get('/api/dev/users', async (_req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Not available in production' });
+  }
+  const users = await dbGetSafeUsers();
+  res.json({ users, count: users.length, mode: useInMemory() ? 'in-memory' : 'postgresql' });
+});
 
 // 1. Health Endpoint
 app.get('/api/health', (req, res) => {

@@ -19,13 +19,16 @@ function safeUser(u: StoredUser) {
     organization: u.organization,
     designation: u.designation,
     role: u.role,
+    phone: u.phone ?? '',
+    preferred_language: u.preferred_language ?? 'en',
+    is_verified: u.is_verified ?? false,
     created_at: u.created_at,
   };
 }
 
 // POST /api/auth/signup
 authRouter.post('/signup', async (req: Request, res: Response) => {
-  const { email, password, full_name, organization = '', designation = '', role = 'PUBLIC_RESEARCHER' } = req.body;
+  const { email, password, full_name, organization = '', designation = '', role = 'PUBLIC_RESEARCHER', phone = '', preferred_language = 'en' } = req.body;
 
   if (!email || !password || !full_name) {
     res.status(400).json({ error: 'email, password, and full_name are required' });
@@ -56,6 +59,10 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
         organization,
         designation,
         role: assignedRole,
+        phone: String(phone ?? '').slice(0, 20),
+        preferred_language: String(preferred_language ?? 'en').slice(0, 10),
+        is_verified: false,
+        last_login_at: null,
         created_at: new Date().toISOString(),
       };
       memCreateUser(user);
@@ -68,9 +75,10 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
         return;
       }
       const rows = await dbQuery(
-        `INSERT INTO users (email, password_hash, full_name, organization, designation, role)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-        [sanitizedEmail, password_hash, full_name, organization, designation, assignedRole]
+        `INSERT INTO users (email, password_hash, full_name, organization, designation, role, phone, preferred_language)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [sanitizedEmail, password_hash, full_name, organization, designation, assignedRole,
+         String(phone ?? '').slice(0, 20), String(preferred_language ?? 'en').slice(0, 10)]
       );
       const user = rows[0];
       const token = signToken({ id: user.id, email: user.email, full_name: user.full_name, organization: user.organization, role: user.role });
