@@ -7,6 +7,8 @@ import {
 } from '../db/postgres';
 import { signToken, requireAuth } from '../middleware/auth';
 
+const PENDING_ROLES = new Set(['ISRO_SCIENTIST', 'MARINE_ANALYST', 'COAST_GUARD']);
+
 export const authRouter = Router();
 
 const BCRYPT_ROUNDS = 12;
@@ -22,6 +24,7 @@ function safeUser(u: StoredUser) {
     phone: u.phone ?? '',
     preferred_language: u.preferred_language ?? 'en',
     is_verified: u.is_verified ?? false,
+    account_status: u.account_status ?? 'ACTIVE',
     created_at: u.created_at,
   };
 }
@@ -42,6 +45,9 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
   const allowedRoles = ['PUBLIC_RESEARCHER', 'MARINE_ANALYST', 'ISRO_SCIENTIST', 'COAST_GUARD', 'FISHERMAN'];
   const assignedRole = allowedRoles.includes(role) ? role : 'PUBLIC_RESEARCHER';
 
+  const account_status = PENDING_ROLES.has(assignedRole) ? 'PENDING_VERIFICATION' : 'ACTIVE';
+  const is_verified = account_status === 'ACTIVE';
+
   try {
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
@@ -61,9 +67,11 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
         role: assignedRole,
         phone: String(phone ?? '').slice(0, 20),
         preferred_language: String(preferred_language ?? 'en').slice(0, 10),
-        is_verified: false,
+        is_verified,
+        account_status,
         last_login_at: null,
         created_at: new Date().toISOString(),
+        updated_at: null,
       };
       memCreateUser(user);
       const token = signToken({ id: user.id, email: user.email, full_name: user.full_name, organization: user.organization, role: user.role });
@@ -75,10 +83,11 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
         return;
       }
       const rows = await dbQuery(
-        `INSERT INTO users (email, password_hash, full_name, organization, designation, role, phone, preferred_language)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        `INSERT INTO users (email, password_hash, full_name, organization, designation, role, phone, preferred_language, account_status, is_verified)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
         [sanitizedEmail, password_hash, full_name, organization, designation, assignedRole,
-         String(phone ?? '').slice(0, 20), String(preferred_language ?? 'en').slice(0, 10)]
+         String(phone ?? '').slice(0, 20), String(preferred_language ?? 'en').slice(0, 10),
+         account_status, is_verified]
       );
       const user = rows[0];
       const token = signToken({ id: user.id, email: user.email, full_name: user.full_name, organization: user.organization, role: user.role });
@@ -117,6 +126,21 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+    const accountStatus = user.account_status ?? 'ACTIVE';
+    if (accountStatus === 'PENDING_VERIFICATION') {
+      res.status(403).json({
+        error: 'Account pending verification. Please wait for admin approval.',
+        account_status: 'PENDING_VERIFICATION',
+      });
+      return;
+    }
+    if (accountStatus === 'REJECTED') {
+      res.status(403).json({
+        error: 'Account has been rejected. Please contact the administrator.',
+        account_status: 'REJECTED',
+      });
       return;
     }
     const token = signToken({ id: user.id, email: user.email, full_name: user.full_name, organization: user.organization, role: user.role });

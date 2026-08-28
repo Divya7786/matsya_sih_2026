@@ -5,6 +5,10 @@ export interface AuthUser {
   organization: string;
   designation: string;
   role: string;
+  phone: string;
+  preferred_language: string;
+  is_verified: boolean;
+  account_status: string; // ACTIVE | PENDING_VERIFICATION | REJECTED
   created_at: string;
 }
 
@@ -153,4 +157,36 @@ export async function apiGetActiveAlerts(): Promise<any[]> {
   if (!res.ok) return [];
   const json = await res.json();
   return json.alerts ?? [];
+}
+
+// ── Admin ──────────────────────────────────────────────────────────────────
+
+export async function apiGetPendingUsers(): Promise<any[]> {
+  const res = await fetch('/api/admin/users/pending', { headers: authHeaders() });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.users ?? [];
+}
+
+export async function apiGetAllAdminUsers(): Promise<any[]> {
+  const res = await fetch('/api/admin/users', { headers: authHeaders() });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.users ?? [];
+}
+
+export async function apiVerifyUser(userId: string): Promise<boolean> {
+  const res = await fetch(`/api/admin/users/${userId}/verify`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return res.ok;
+}
+
+export async function apiRejectUser(userId: string): Promise<boolean> {
+  const res = await fetch(`/api/admin/users/${userId}/reject`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return res.ok;
 }

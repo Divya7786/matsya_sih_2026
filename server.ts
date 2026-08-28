@@ -14,8 +14,9 @@ import { globalVectorStore } from './server/db/vectorStore';
 import { TOOL_REGISTRY, getToolsForIntent } from './server/agents/toolRegistry';
 import { fetchMarineLive, fetchSstWithGradient } from './server/data/openMeteoMarineClient';
 import { fetchNceiSst, fetchPifscChlorophyll } from './server/data/incoisErddapClient';
-import { runMigrations, dbHealthCheck, dbGetSafeUsers, useInMemory } from './server/db/postgres';
+import { runMigrations, dbHealthCheck, dbGetSafeUsers, useInMemory, seedInMemoryAdmin } from './server/db/postgres';
 import { authRouter } from './server/routes/auth';
+import { adminRouter } from './server/routes/adminRoutes';
 import { historyRouter, saveAnalysis } from './server/routes/history';
 import { publicRouter } from './server/routes/publicRoutes';
 import { userRouter } from './server/routes/userRoutes';
@@ -29,8 +30,9 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT as string, 10) : 3000;
 
 app.use(express.json());
 
-// Auth, History, Public, User & Voice routes
+// Auth, Admin, History, Public, User & Voice routes
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/user', userRouter);
@@ -605,6 +607,16 @@ app.get('/api/ocean/live', async (req, res) => {
 // Vite Middleware for Dev / Static serving for Prod
 async function startServer() {
   await runMigrations();
+
+  // Auto-seed admin in in-memory mode when ADMIN_EMAIL/ADMIN_PASSWORD are set
+  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    await seedInMemoryAdmin(
+      process.env.ADMIN_EMAIL,
+      process.env.ADMIN_PASSWORD,
+      process.env.ADMIN_NAME || 'System Administrator',
+    );
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

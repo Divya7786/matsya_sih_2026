@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { randomUUID } from 'crypto';
+import bcrypt from 'bcrypt';
 
 let pool: Pool | null = null;
 const inMemoryUsers: Map<string, StoredUser> = new Map();
@@ -19,8 +20,10 @@ export interface StoredUser {
   phone: string;
   preferred_language: string;
   is_verified: boolean;
+  account_status: string; // ACTIVE | PENDING_VERIFICATION | REJECTED
   last_login_at: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 export interface StoredAnalysis {
@@ -103,13 +106,18 @@ export async function runMigrations(): Promise<void> {
       phone TEXT NOT NULL DEFAULT '',
       preferred_language TEXT NOT NULL DEFAULT 'en',
       is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      account_status TEXT NOT NULL DEFAULT 'ACTIVE',
       last_login_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language TEXT NOT NULL DEFAULT 'en';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status TEXT NOT NULL DEFAULT 'ACTIVE';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+    CREATE INDEX IF NOT EXISTS idx_users_account_status ON users(account_status);
     CREATE TABLE IF NOT EXISTS analysis_history (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -217,7 +225,15 @@ export function memGetUserById(id: string): StoredUser | undefined {
 
 export function memUpdateUser(id: string, patch: Partial<StoredUser>): void {
   const u = inMemoryUsers.get(id);
-  if (u) inMemoryUsers.set(id, { ...u, ...patch });
+  if (u) inMemoryUsers.set(id, { ...u, ...patch, updated_at: new Date().toISOString() });
+}
+
+export function memGetAllUsers(): StoredUser[] {
+  return Array.from(inMemoryUsers.values());
+}
+
+export function memGetUsersByAccountStatus(status: string): StoredUser[] {
+  return Array.from(inMemoryUsers.values()).filter(u => (u.account_status ?? 'ACTIVE') === status);
 }
 
 // ── In-memory fallback: analyses ───────────────────────────────────────────
@@ -339,7 +355,7 @@ export async function dbHealthCheck(): Promise<{
 
 export async function dbGetSafeUsers(): Promise<Array<{
   id: string; full_name: string; email: string; role: string;
-  is_verified: boolean; created_at: string;
+  is_verified: boolean; account_status: string; created_at: string;
 }>> {
   if (useInMemory()) {
     return Array.from(inMemoryUsers.values()).map(u => ({
@@ -348,13 +364,45 @@ export async function dbGetSafeUsers(): Promise<Array<{
       email: u.email,
       role: u.role,
       is_verified: u.is_verified,
+      account_status: u.account_status ?? 'ACTIVE',
       created_at: u.created_at,
     }));
   }
   try {
     const rows = await dbQuery(
-      `SELECT id, full_name, email, role, is_verified, created_at FROM users ORDER BY created_at DESC LIMIT 100`,
+      `SELECT id, full_name, email, role, is_verified, account_status, created_at FROM users ORDER BY created_at DESC LIMIT 100`,
     );
     return rows;
   } catch { return []; }
+}
+
+export async function seedInMemoryAdmin(email: string, password: string, name: string): Promise<void> {
+  if (!useInMemory()) return;
+  const lowerEmail = email.toLowerCase().trim();
+  const existing = memGetUserByEmail(lowerEmail);
+  if (existing) {
+    if (existing.role !== 'ADMIN') {
+      memUpdateUser(existing.id, { role: 'ADMIN', account_status: 'ACTIVE', is_verified: true });
+      console.log(`[AUTH] In-memory user ${lowerEmail} promoted to ADMIN`);
+    }
+    return;
+  }
+  const password_hash = await bcrypt.hash(password, 12);
+  memCreateUser({
+    id: `admin-${randomUUID()}`,
+    email: lowerEmail,
+    password_hash,
+    full_name: name,
+    organization: 'MATSYA AI',
+    designation: 'System Administrator',
+    role: 'ADMIN',
+    phone: '',
+    preferred_language: 'en',
+    is_verified: true,
+    account_status: 'ACTIVE',
+    last_login_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: null,
+  });
+  console.log(`[AUTH] In-memory admin seeded: ${lowerEmail}`);
 }

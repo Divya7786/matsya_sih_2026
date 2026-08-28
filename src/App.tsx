@@ -22,6 +22,8 @@ import { LandingDashboard } from './views/LandingDashboard';
 import { PublicDashboardView } from './views/PublicDashboardView';
 import { LoginView } from './views/LoginView';
 import { SignupView } from './views/SignupView';
+import { AdminView } from './views/AdminView';
+import { PendingVerificationView } from './views/PendingVerificationView';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { apiMe, clearToken, storeToken, getStoredToken } from './services/authApi';
 import type { AuthUser } from './services/authApi';
@@ -37,6 +39,8 @@ function authUserToProfile(u: AuthUser): UserProfile {
     badge: u.organization ? u.organization.split(' ')[0] : 'Verified',
     clearanceLevel: 'CONFIDENTIAL',
     savedAnalysesCount: 0,
+    account_status: u.account_status,
+    is_verified: u.is_verified,
   };
 }
 
@@ -88,11 +92,36 @@ export function App() {
     setIsVoiceModalOpen(true);
   };
 
+  // Refresh auth from server — used by PendingVerificationView "Check Status" button
+  const handleAuthRefresh = async () => {
+    const user = await apiMe();
+    if (!user) return;
+    const profile = authUserToProfile(user);
+    setAuthState({ isAuthenticated: true, user: profile, token: getStoredToken() });
+    if (user.account_status === 'ACTIVE') {
+      if (user.role === 'ADMIN') {
+        handleNavigate('admin');
+      } else if (user.role === 'FISHERMAN' || user.role === 'PUBLIC_RESEARCHER') {
+        handleNavigate('fisherman');
+      } else {
+        handleNavigate('operations-center');
+      }
+    }
+  };
+
   // Called by real server login (LoginView / SignupView)
   const handleRealLoginSuccess = (user: AuthUser, token: string) => {
     storeToken(token);
     setAuthState({ isAuthenticated: true, user: authUserToProfile(user), token });
-    handleNavigate('operations-center');
+    if (user.role === 'ADMIN') {
+      handleNavigate('admin');
+    } else if (user.account_status === 'PENDING_VERIFICATION') {
+      handleNavigate('pending-verification');
+    } else if (user.role === 'FISHERMAN' || user.role === 'PUBLIC_RESEARCHER') {
+      handleNavigate('fisherman');
+    } else {
+      handleNavigate('operations-center');
+    }
   };
 
   // Called by demo preset login (AuthModal)
@@ -229,19 +258,12 @@ export function App() {
               onLoginSuccess={handleRealLoginSuccess}
               onNavigate={handleNavigate}
             />
-          ) : (authState.user?.role === 'ISRO_SCIENTIST' || authState.user?.role === 'MARINE_ANALYST' || authState.user?.role === 'COAST_GUARD') && !(authState.user as any)?.is_verified ? (
-            <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center p-6">
-              <div className="max-w-md w-full bg-white rounded-2xl border border-[#E5E5E5] shadow-lg p-8 text-center space-y-4">
-                <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
-                  <svg className="w-7 h-7 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/></svg>
-                </div>
-                <h2 className="text-lg font-bold text-[#111111]">Account Pending Verification</h2>
-                <p className="text-sm text-[#555555]">Scientist and Analyst accounts require admin verification before accessing the Operations Center. Please contact your ISRO/MoES supervisor.</p>
-                <button onClick={() => handleNavigate('home')} className="px-4 py-2 bg-[#111111] text-white rounded-lg text-sm font-semibold hover:bg-black transition">
-                  Back to Home
-                </button>
-              </div>
-            </div>
+          ) : authState.user?.account_status === 'PENDING_VERIFICATION' ? (
+            <PendingVerificationView
+              onLogout={handleLogout}
+              onNavigate={handleNavigate}
+              onCheckStatus={handleAuthRefresh}
+            />
           ) : (
             <OperationsCenterView
               user={authState.user!}
@@ -249,6 +271,28 @@ export function App() {
               onOpenVoiceModal={handleOpenVoiceModal}
             />
           )
+        )}
+
+        {currentView === 'admin' && (
+          !authState.isAuthenticated || authState.user?.role !== 'ADMIN' ? (
+            <LoginView
+              onLoginSuccess={handleRealLoginSuccess}
+              onNavigate={handleNavigate}
+            />
+          ) : (
+            <AdminView
+              onNavigate={handleNavigate}
+              onLogout={handleLogout}
+            />
+          )
+        )}
+
+        {currentView === 'pending-verification' && (
+          <PendingVerificationView
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+            onCheckStatus={handleAuthRefresh}
+          />
         )}
 
         {currentView === 'fisherman' && (

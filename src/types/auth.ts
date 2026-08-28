@@ -19,6 +19,8 @@ export interface UserProfile {
   badge: string;
   clearanceLevel: string;
   savedAnalysesCount: number;
+  account_status?: string;
+  is_verified?: boolean;
 }
 
 export interface SavedAnalysis {
