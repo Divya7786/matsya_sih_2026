@@ -1,33 +1,35 @@
-import React, { useState } from 'react';
-import { 
-  Satellite, 
-  Cpu, 
-  Layers, 
-  FileText, 
-  Bookmark, 
-  Activity, 
-  ShieldCheck, 
-  Download, 
-  Printer, 
-  Send, 
-  Sparkles, 
-  Compass, 
-  Waves, 
-  Leaf, 
-  Wind, 
-  Clock, 
-  TrendingUp, 
+import React, { useState, useEffect } from 'react';
+import {
+  Satellite,
+  Cpu,
+  Layers,
+  FileText,
+  Bookmark,
+  Activity,
+  ShieldCheck,
+  Download,
+  Printer,
+  Send,
+  Sparkles,
+  Compass,
+  Waves,
+  Leaf,
+  Wind,
+  Clock,
+  TrendingUp,
   Database,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
   ChevronRight,
-  UserCheck
+  UserCheck,
+  History
 } from 'lucide-react';
 import { UserProfile } from '../types/auth';
 import { MOCK_SAVED_ANALYSES } from '../data/mockResearchData';
 import { generateMarineReport, runAgentOrchestration } from '../services/api';
 import { MarineIntelligenceReport, AgentOrchestrationResult } from '../types/marine';
+import { apiGetAnalysisHistory } from '../services/authApi';
 
 interface OperationsCenterViewProps {
   user: UserProfile;
@@ -43,6 +45,17 @@ export const OperationsCenterView: React.FC<OperationsCenterViewProps> = ({
   const [activeTab, setActiveTab] = useState<
     'overview' | 'agent-console' | 'satellite-telemetry' | 'pfz-workbench' | 'anomaly-detective' | 'report-generator' | 'saved-analyses' | 'sources-health'
   >('overview');
+  const [realHistory, setRealHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== 'saved-analyses') return;
+    setHistoryLoading(true);
+    apiGetAnalysisHistory()
+      .then(h => setRealHistory(h))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, [activeTab]);
 
   // Query state for Agent Console
   const [consoleQuery, setConsoleQuery] = useState(
@@ -191,8 +204,8 @@ export const OperationsCenterView: React.FC<OperationsCenterViewProps> = ({
                 activeTab === 'saved-analyses' ? 'bg-[#111111] text-white shadow-xs' : 'text-[#555555] hover:bg-[#F7F7F5] hover:text-black'
               }`}
             >
-              <Bookmark className="w-4 h-4 text-emerald-400" />
-              <span>My Saved Analyses ({user.savedAnalysesCount})</span>
+              <History className="w-4 h-4 text-emerald-400" />
+              <span>Analysis History {realHistory.length > 0 ? `(${realHistory.length})` : `(${user.savedAnalysesCount})`}</span>
             </button>
 
             <button
@@ -505,47 +518,94 @@ export const OperationsCenterView: React.FC<OperationsCenterViewProps> = ({
           {activeTab === 'saved-analyses' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-[#111111]">
-                  My Saved Investigations & Spatial Analyses
-                </h3>
-                <span className="text-xs font-mono text-[#888888]">{MOCK_SAVED_ANALYSES.length} Saved</span>
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-teal-600" />
+                  <h3 className="font-bold text-sm text-[#111111]">Analysis History</h3>
+                </div>
+                <span className="text-xs font-mono text-[#888888]">
+                  {realHistory.length > 0 ? `${realHistory.length} sessions` : `${MOCK_SAVED_ANALYSES.length} demo`}
+                </span>
               </div>
 
-              <div className="space-y-3">
-                {MOCK_SAVED_ANALYSES.map((item) => (
-                  <div key={item.id} className="p-5 rounded-2xl border border-[#E5E5E5] bg-white space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-[#111111]">{item.title}</span>
-                      <span className="text-[10px] font-mono text-[#888888]">{item.date}</span>
-                    </div>
+              {historyLoading && (
+                <div className="flex items-center gap-2 py-4 text-xs text-[#888888]">
+                  <div className="w-3.5 h-3.5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+                  Loading history...
+                </div>
+              )}
 
-                    <p className="text-xs text-[#555555]">{item.summary}</p>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {item.variables.map((v, i) => (
-                        <span key={i} className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F7F7F5] border border-[#E5E5E5] text-[#444444]">
-                          {v}
+              {!historyLoading && realHistory.length > 0 && (
+                <div className="space-y-3">
+                  {realHistory.map((item: any) => (
+                    <div key={item.id} className="p-4 rounded-xl border border-[#E5E5E5] bg-white space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="font-semibold text-xs text-[#111111] leading-snug flex-1">{item.query}</span>
+                        <span className="text-[10px] font-mono text-[#888888] shrink-0">
+                          {new Date(item.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                         </span>
-                      ))}
+                      </div>
+                      {item.answer_summary && (
+                        <p className="text-[11px] text-[#666666] line-clamp-2">{item.answer_summary}</p>
+                      )}
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.intent && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-teal-50 border border-teal-200 text-teal-700">{item.intent}</span>
+                        )}
+                        {item.location_name && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F7F7F5] border border-[#E5E5E5] text-[#555555]">{item.location_name}</span>
+                        )}
+                        {item.pfz_count > 0 && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">{item.pfz_count} PFZ zones</span>
+                        )}
+                      </div>
+                      <div className="pt-1 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setConsoleQuery(item.query);
+                            setActiveTab('agent-console');
+                            handleExecuteConsole();
+                          }}
+                          className="text-[11px] font-bold text-[#111111] hover:underline flex items-center gap-1"
+                        >
+                          Re-Run <ChevronRight className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    <div className="pt-2 border-t border-[#F0F0F0] flex items-center justify-between text-xs">
-                      <span className="text-[11px] font-mono text-teal-800">{item.region}</span>
-                      <button
-                        onClick={() => {
-                          setConsoleQuery(item.query);
-                          setActiveTab('agent-console');
-                          handleExecuteConsole();
-                        }}
-                        className="font-bold text-[#111111] hover:underline flex items-center gap-1"
-                      >
-                        <span>Re-Run Query</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+              {!historyLoading && realHistory.length === 0 && (
+                <>
+                  <p className="text-xs text-[#888888] mb-3">No analysis history yet. Run queries in the Agent Console to build your history. Showing demo data:</p>
+                  <div className="space-y-3">
+                    {MOCK_SAVED_ANALYSES.map((item) => (
+                      <div key={item.id} className="p-5 rounded-2xl border border-[#E5E5E5] bg-white space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-[#111111]">{item.title}</span>
+                          <span className="text-[10px] font-mono text-[#888888]">{item.date}</span>
+                        </div>
+                        <p className="text-xs text-[#555555]">{item.summary}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.variables.map((v: string, i: number) => (
+                            <span key={i} className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F7F7F5] border border-[#E5E5E5] text-[#444444]">{v}</span>
+                          ))}
+                        </div>
+                        <div className="pt-2 border-t border-[#F0F0F0] flex items-center justify-between text-xs">
+                          <span className="text-[11px] font-mono text-teal-800">{item.region}</span>
+                          <button
+                            onClick={() => { setConsoleQuery(item.query); setActiveTab('agent-console'); handleExecuteConsole(); }}
+                            className="font-bold text-[#111111] hover:underline flex items-center gap-1"
+                          >
+                            <span>Re-Run Query</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           )}
 

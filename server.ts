@@ -14,6 +14,10 @@ import { globalVectorStore } from './server/db/vectorStore';
 import { TOOL_REGISTRY, getToolsForIntent } from './server/agents/toolRegistry';
 import { fetchMarineLive, fetchSstWithGradient } from './server/data/openMeteoMarineClient';
 import { fetchNceiSst, fetchPifscChlorophyll } from './server/data/incoisErddapClient';
+import { runMigrations } from './server/db/postgres';
+import { authRouter } from './server/routes/auth';
+import { historyRouter, saveAnalysis } from './server/routes/history';
+import { optionalAuth } from './server/middleware/auth';
 
 dotenv.config();
 
@@ -21,6 +25,10 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT as string, 10) : 3000;
 
 app.use(express.json());
+
+// Auth & History routes
+app.use('/api/auth', authRouter);
+app.use('/api/history', historyRouter);
 
 // 1. Health Endpoint
 app.get('/api/health', (req, res) => {
@@ -158,7 +166,7 @@ app.get('/api/ocean/location', async (req, res) => {
 });
 
 // 3. MASTER MULTI-AGENT ORCHESTRATION ENDPOINT
-app.post('/api/agents/orchestrate', async (req, res) => {
+app.post('/api/agents/orchestrate', optionalAuth, async (req, res) => {
   try {
     const { query, language = 'en', locationContext, memoryContext } = req.body;
     if (!query) {
@@ -166,6 +174,28 @@ app.post('/api/agents/orchestrate', async (req, res) => {
     }
 
     const result = await globalMultiAgentOrchestrator.orchestrate(query, language, locationContext, memoryContext);
+
+    // Save to history for authenticated users (fire-and-forget)
+    if (req.user) {
+      const waveHeight = result.riskAssessment
+        ? (result.evidence?.find(e => e.dataset.includes('Wave'))?.observation?.match(/Wave\s*([\d.]+)/)?.[1]
+            ? parseFloat(result.evidence.find(e => e.dataset.includes('Wave'))!.observation.match(/Wave\s*([\d.]+)/)![1])
+            : null)
+        : null;
+      saveAnalysis({
+        userId: req.user.id,
+        query,
+        intent: result.detectedIntent,
+        locationName: locationContext?.name ?? null,
+        lat: locationContext?.lat ?? null,
+        lng: locationContext?.lng ?? null,
+        answerSummary: result.answer.slice(0, 500),
+        dataStatus: result.dataFreshness?.pfz ?? 'UNKNOWN',
+        pfzCount: result.pfzRecommendations?.length ?? 0,
+        waveHeight,
+      }).catch(() => {});
+    }
+
     res.json(result);
   } catch (err: any) {
     console.error('Agent Orchestration Error:', err);
@@ -542,6 +572,7 @@ app.get('/api/ocean/live', async (req, res) => {
 
 // Vite Middleware for Dev / Static serving for Prod
 async function startServer() {
+  await runMigrations();
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

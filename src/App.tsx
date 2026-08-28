@@ -20,7 +20,25 @@ import { FishermanView } from './views/FishermanView';
 import { MissionConsoleView } from './views/MissionConsoleView';
 import { LandingDashboard } from './views/LandingDashboard';
 import { PublicDashboardView } from './views/PublicDashboardView';
+import { LoginView } from './views/LoginView';
+import { SignupView } from './views/SignupView';
 import { DownloadAppModal } from './components/DownloadAppModal';
+import { apiMe, clearToken, storeToken, getStoredToken } from './services/authApi';
+import type { AuthUser } from './services/authApi';
+
+function authUserToProfile(u: AuthUser): UserProfile {
+  return {
+    id: u.id,
+    name: u.full_name,
+    email: u.email,
+    role: u.role as any,
+    organization: u.organization,
+    department: u.designation,
+    badge: u.organization ? u.organization.split(' ')[0] : 'Verified',
+    clearanceLevel: 'CONFIDENTIAL',
+    savedAnalysesCount: 0,
+  };
+}
 
 export function App() {
   const [currentView, setCurrentView] = useState<string>('home');
@@ -37,8 +55,28 @@ export function App() {
     token: null
   });
 
+  // Restore session from stored JWT on mount
+  useEffect(() => {
+    const token = getStoredToken();
+    if (!token) return;
+    apiMe().then(user => {
+      if (user) {
+        setAuthState({
+          isAuthenticated: true,
+          user: authUserToProfile(user),
+          token,
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
   // Scroll to top on navigation
   const handleNavigate = (view: string) => {
+    // 'auth-demo' opens the existing AuthModal (preset profiles)
+    if (view === 'auth-demo') {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setCurrentView(view);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -50,23 +88,27 @@ export function App() {
     setIsVoiceModalOpen(true);
   };
 
+  // Called by real server login (LoginView / SignupView)
+  const handleRealLoginSuccess = (user: AuthUser, token: string) => {
+    storeToken(token);
+    setAuthState({ isAuthenticated: true, user: authUserToProfile(user), token });
+    handleNavigate('operations-center');
+  };
+
+  // Called by demo preset login (AuthModal)
   const handleLoginSuccess = (user: UserProfile) => {
     setAuthState({
       isAuthenticated: true,
       user,
-      token: 'matsya_auth_token_isro_' + Date.now()
+      token: 'matsya_auth_token_demo_' + Date.now()
     });
     setIsAuthModalOpen(false);
-    // Redirect directly to operations center upon login
     handleNavigate('operations-center');
   };
 
   const handleLogout = () => {
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      token: null
-    });
+    clearToken();
+    setAuthState({ isAuthenticated: false, user: null, token: null });
     handleNavigate('home');
   };
 
@@ -106,6 +148,20 @@ export function App() {
           <PublicDashboardView
             onNavigate={handleNavigate}
             onOpenVoiceModal={() => handleOpenVoiceModal()}
+          />
+        )}
+
+        {currentView === 'login' && (
+          <LoginView
+            onLoginSuccess={handleRealLoginSuccess}
+            onNavigate={handleNavigate}
+          />
+        )}
+
+        {currentView === 'signup' && (
+          <SignupView
+            onSignupSuccess={handleRealLoginSuccess}
+            onNavigate={handleNavigate}
           />
         )}
 
@@ -168,21 +224,18 @@ export function App() {
         )}
 
         {currentView === 'operations-center' && (
-          <OperationsCenterView
-            user={authState.user || {
-              id: 'guest-researcher',
-              name: 'Dr. A. Saravanan',
-              email: 'saravanan.a@isro.gov.in',
-              role: 'isro_scientist',
-              organization: 'ISRO Space Applications Centre',
-              department: 'Ocean Sciences & Remote Sensing Division',
-              clearanceLevel: 'LEVEL-3 (RESTRICTED)',
-              savedAnalysesCount: 4,
-              badge: 'ISRO / SAC'
-            }}
-            onNavigate={handleNavigate}
-            onOpenVoiceModal={handleOpenVoiceModal}
-          />
+          authState.isAuthenticated ? (
+            <OperationsCenterView
+              user={authState.user!}
+              onNavigate={handleNavigate}
+              onOpenVoiceModal={handleOpenVoiceModal}
+            />
+          ) : (
+            <LoginView
+              onLoginSuccess={handleRealLoginSuccess}
+              onNavigate={handleNavigate}
+            />
+          )
         )}
 
         {currentView === 'fisherman' && (

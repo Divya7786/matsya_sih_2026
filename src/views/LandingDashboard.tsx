@@ -103,10 +103,10 @@ export const LandingDashboard: React.FC<LandingDashboardProps> = ({ onNavigate, 
               <li className="flex items-center gap-2"><Globe className="w-3.5 h-3.5 text-sky-600" /> PFZ & general marine data</li>
             </ul>
             <button
-              onClick={() => onNavigate('public-dashboard')}
+              onClick={() => onNavigate('ocean')}
               className="mt-6 w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition"
             >
-              Explore Public Map
+              Explore 3D Ocean Globe
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

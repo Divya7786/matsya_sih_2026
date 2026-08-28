@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Satellite, ShieldCheck, User, Lock, Mail, CheckCircle2, ArrowRight, Compass, Sparkles } from 'lucide-react';
+import { X, Satellite, ShieldCheck, User, Lock, Mail, CheckCircle2, ArrowRight, Compass, Sparkles, AlertCircle } from 'lucide-react';
 import { UserProfile, UserRole } from '../types/auth';
+import { apiLogin, storeToken } from '../services/authApi';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -70,29 +71,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [credError, setCredError] = useState('');
   const [activeTab, setActiveTab] = useState<'credentials' | 'preset'>('preset');
 
   if (!isOpen) return null;
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
+  const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCredError('');
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const customUser: UserProfile = {
-        id: `user-${Date.now()}`,
-        name: email.split('@')[0].toUpperCase(),
-        email: email || 'scientist@isro.gov.in',
-        role: 'ISRO_SCIENTIST',
-        roleTitle: 'Authorized Maritime Research Scientist',
-        organization: 'ISRO Space Applications Centre',
-        badge: 'Authorized Researcher',
+    try {
+      const { token, user } = await apiLogin(email.trim().toLowerCase(), password);
+      storeToken(token);
+      const profile: UserProfile = {
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        role: user.role as any,
+        organization: user.organization,
+        department: user.designation,
+        badge: user.organization?.split(' ')[0] || 'Verified',
         clearanceLevel: 'CONFIDENTIAL',
-        savedAnalysesCount: 5,
+        savedAnalysesCount: 0,
       };
-      onLoginSuccess(customUser);
+      onLoginSuccess(profile);
       onClose();
-    }, 600);
+    } catch (err: any) {
+      setCredError(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelectPreset = (preset: UserProfile) => {
@@ -196,6 +204,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             </div>
           ) : (
             <form onSubmit={handleCustomSubmit} className="space-y-4">
+              {credError && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 border border-red-200">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <p className="text-xs text-red-700">{credError}</p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-[#111111]">
                   Official Email / Gov ID
@@ -249,14 +263,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleSelectPreset(PRESET_ROLES[0])}
-                className="w-full py-2 bg-[#F7F7F5] hover:bg-[#EFEFEA] border border-[#E5E5E5] text-[#111111] text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2"
-              >
-                <Satellite className="w-3.5 h-3.5 text-teal-600" />
-                <span>Single Sign-On (ISRO Space Applications Centre CAS)</span>
-              </button>
+              <p className="text-[11px] text-center text-[#888888]">
+                No account?{' '}
+                <button type="button" onClick={() => { onClose(); }} className="text-teal-700 font-semibold hover:underline">
+                  Use Demo Profiles tab to explore without an account
+                </button>
+              </p>
             </form>
           )}
         </div>

@@ -308,24 +308,14 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    /* Page backdrop — slate background shows the phone frame on desktop */
-    <div className="w-full bg-slate-950 flex items-start justify-center pt-6 pb-8 min-h-[calc(100vh-4rem)] px-4">
+    /* Page wrapper — transparent so App.tsx light background shows through */
+    <div className="w-full flex justify-center px-3 py-2">
 
       {/* ═══ REALISTIC PHONE FRAME ═══ */}
+      {/* width/height use CSS min() so the phone always fits in the viewport */}
       <div
-        className={[
-          'relative flex flex-col overflow-hidden',
-          'bg-[#06101e]',
-          // Phone dimensions
-          'w-full max-w-[390px]',
-          // Height: fills remaining viewport on mobile, fixed phone height on desktop
-          'h-[calc(100svh-7rem)] min-h-[640px]',
-          'sm:h-[844px]',
-          // Phone chrome
-          'rounded-[36px] sm:rounded-[44px]',
-          'border border-slate-700/50',
-          'shadow-[0_32px_80px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)]',
-        ].join(' ')}
+        style={{ width: 'min(390px, 94vw)', height: 'min(844px, calc(100svh - 12rem))' }}
+        className="relative flex flex-col overflow-hidden bg-[#06101e] rounded-[36px] sm:rounded-[44px] border border-slate-700/50 shadow-[0_20px_60px_rgba(0,0,0,0.28),0_0_0_1.5px_rgba(255,255,255,0.06)]"
       >
         {/* ── PHONE TOP NOTCH (decorative) ────────────────────────────────── */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-24 h-6 bg-[#06101e] rounded-b-2xl" />

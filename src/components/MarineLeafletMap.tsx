@@ -144,24 +144,24 @@ export const MarineLeafletMap: React.FC<MarineLeafletMapProps> = ({
         }
         .leaflet-popup-content-wrapper {
           background: #0c1a2e !important;
-          border: 1px solid rgba(16,185,129,0.25) !important;
+          border: 1px solid rgba(16,185,129,0.3) !important;
           border-radius: 12px !important;
           color: white !important;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.45) !important;
         }
         .leaflet-popup-tip { background: #0c1a2e !important; }
         .leaflet-popup-close-button { color: rgba(255,255,255,0.5) !important; }
         .leaflet-control-zoom a {
-          background: #0c1a2e !important;
+          background: rgba(6,16,30,0.85) !important;
           color: #5eead4 !important;
-          border-color: rgba(94,234,212,0.2) !important;
+          border-color: rgba(94,234,212,0.25) !important;
         }
         .leaflet-control-attribution {
-          background: rgba(6,16,30,0.7) !important;
-          color: rgba(255,255,255,0.3) !important;
+          background: rgba(255,255,255,0.8) !important;
+          color: rgba(0,0,0,0.5) !important;
           font-size: 9px !important;
         }
-        .leaflet-control-attribution a { color: rgba(255,255,255,0.4) !important; }
+        .leaflet-control-attribution a { color: rgba(0,100,200,0.7) !important; }
       `}</style>
 
       <MapContainer
@@ -171,11 +171,10 @@ export const MarineLeafletMap: React.FC<MarineLeafletMapProps> = ({
         zoomControl={true}
         attributionControl={true}
       >
-        {/* Dark nautical tile layer — CartoDB DarkMatter, no API key needed */}
+        {/* OpenStreetMap tiles — free, no API key required, colorful geographic map */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://openstreetmap.org">OSM</a> &copy; <a href="https://carto.com">CARTO</a>'
-          subdomains="abcd"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           maxZoom={19}
         />
 
