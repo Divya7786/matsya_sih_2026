@@ -427,6 +427,27 @@ function getDisplayDate(timeOffset: number): string {
 }
 
 // ═══════════════════════════════════════════════════════════
+// PER-LAYER TINT DEFINITIONS
+// ═══════════════════════════════════════════════════════════
+// Each layer gets a 3-stop latitude gradient: c0 (low/pole or equator end) →
+// c1 (mid) → c2 (high end). bias=0: equator gets c2; bias=1: poles get c2.
+// Colors are RGB 0-255, alpha is 0-1.
+
+type TintDef = { c0:[number,number,number]; c1:[number,number,number]; c2:[number,number,number]; alpha:number; bias:number };
+const LAYER_TINTS: Record<OceanLayerId, TintDef> = {
+  sst:         { c0:[28,10,110],  c1:[60,190,80],   c2:[220,70,20],  alpha:0.22, bias:0.0 },
+  chlorophyll: { c0:[28,10,110],  c1:[20,100,200],  c2:[40,200,80],  alpha:0.20, bias:0.0 },
+  salinity:    { c0:[20,40,180],  c1:[80,140,220],  c2:[140,80,200], alpha:0.20, bias:0.0 },
+  oxygen:      { c0:[10,30,150],  c1:[20,140,210],  c2:[180,230,255],alpha:0.20, bias:1.0 },
+  current:     { c0:[10,50,180],  c1:[60,160,220],  c2:[200,235,255],alpha:0.18, bias:1.0 },
+  ssh:         { c0:[28,10,110],  c1:[0,160,210],   c2:[100,230,240],alpha:0.20, bias:0.0 },
+  ph:          { c0:[30,100,200], c1:[200,200,30],  c2:[220,120,20], alpha:0.22, bias:0.0 },
+  turbidity:   { c0:[20,60,180],  c1:[40,160,80],   c2:[160,120,40], alpha:0.22, bias:0.0 },
+  nitrate:     { c0:[10,20,140],  c1:[20,120,180],  c2:[40,210,120], alpha:0.20, bias:1.0 },
+  pfz:         { c0:[20,40,180],  c1:[220,200,30],  c2:[220,80,20],  alpha:0.22, bias:0.0 },
+};
+
+// ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
 
@@ -446,10 +467,11 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
   const sceneRef           = useRef<THREE.Scene | null>(null);
   const cameraRef          = useRef<THREE.PerspectiveCamera | null>(null);
   const globeRef           = useRef<THREE.Mesh | null>(null);
-  const globeMaterialRef   = useRef<THREE.ShaderMaterial | null>(null);
   const atmosphereRef      = useRef<THREE.Mesh | null>(null);
   const markerGroupRef     = useRef<THREE.Group | null>(null);
   const pfzGroupRef        = useRef<THREE.Group | null>(null);
+  const baseGlobeRef       = useRef<THREE.Mesh | null>(null);
+  const tintMaterialRef    = useRef<THREE.ShaderMaterial | null>(null);
   const selectedMarkerRef  = useRef<THREE.Mesh | null>(null);
   const selectedGlowRef    = useRef<THREE.Mesh | null>(null);
   const animationRef       = useRef<number>(0);
@@ -477,6 +499,7 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
   const [timeOffset,      setTimeOffset]      = useState(0);
   const [isPlaying,       setIsPlaying]       = useState(false);
   const [dataStatus,      setDataStatus]      = useState<'LIVE' | 'SIMULATED'>('SIMULATED');
+  const [voiceActive,     setVoiceActive]     = useState(false);
 
   const currentLayerDef = OCEAN_LAYERS.find(l => l.id === activeLayer)!;
 
@@ -487,143 +510,6 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
     });
   }, []);
 
-  // ── GLSL fragment shader ───────────────────────────────────────────
-  const buildFragShader = useCallback((layerId: OceanLayerId): string => {
-    const layer = OCEAN_LAYERS.find(l => l.id === layerId)!;
-    const s = layer.colorStops;
-    const n = s.length;
-
-    // Generate GLSL color stop arrays (fixed at 9 slots max, pad with last value)
-    const MAX = 9;
-    const colors: string[] = [];
-    const vals: string[] = [];
-    for (let i = 0; i < MAX; i++) {
-      const idx = Math.min(i, n - 1);
-      colors.push(`vec3(${(s[idx].color[0]/255).toFixed(4)},${(s[idx].color[1]/255).toFixed(4)},${(s[idx].color[2]/255).toFixed(4)})`);
-      vals.push((s[idx].value).toFixed(6));
-    }
-
-    const oceanCase = {
-      sst: `
-        t = 1.0 - abs(latNorm - 0.5) * 1.8;
-        t += (fbm(coord * 4.0 + vec2(2.1, 0.8)) - 0.5) * 0.25;
-        t -= depthFactor * 0.08;
-        t += sin(u_timeOffset * 0.261799) * 0.05;`,
-      chlorophyll: `
-        float coastal = 1.0 - smoothstep(0.0, 0.35, depthFactor);
-        t = coastal * 0.6 + fbm(coord * 7.0) * 0.35;
-        t += abs(latNorm - 0.5) * 0.3;`,
-      salinity: `
-        t = 0.4 + (1.0 - abs(latNorm - 0.36)) * 0.3;
-        t += (fbm(coord * 5.0) - 0.5) * 0.2;
-        float riverMouth = smoothstep(8.0, 2.0, length(vec2(lng - 86.0, lat - 16.0)));
-        t -= riverMouth * 0.25;`,
-      oxygen: `
-        t = 1.0 - (1.0 - abs(latNorm - 0.5) * 1.6) * 0.7;
-        t += (1.0 - depthFactor) * 0.2;
-        t += (fbm(coord * 4.0) - 0.5) * 0.15;`,
-      current: `
-        float gyre = sin(lat * 0.08 + u_timeOffset * 0.04) * cos(lng * 0.05);
-        t = abs(gyre) * 0.45 + fbm(coord * 5.0) * 0.3 + depthFactor * 0.2;`,
-      ssh: `
-        float eddy = sin(lat * 0.15 + u_timeOffset * 0.08) * cos(lng * 0.08);
-        t = 0.5 + eddy * 0.4 + (fbm(coord * 6.0) - 0.5) * 0.2;`,
-      ph: `
-        float warmAcid = (1.0 - abs(latNorm - 0.5) * 1.5) * 0.3;
-        t = 0.75 - warmAcid + (fbm(coord * 4.0) - 0.5) * 0.15;`,
-      turbidity: `
-        float coastal2 = 1.0 - smoothstep(0.0, 0.4, depthFactor);
-        t = coastal2 * 0.7 + fbm(coord * 8.0) * 0.25;
-        float bay = smoothstep(12.0, 3.0, length(vec2(lng - 86.0, lat - 14.0)));
-        t += bay * 0.4;`,
-      nitrate: `
-        float arabian = smoothstep(18.0, 4.0, length(vec2(lng - 64.0, lat - 14.0)));
-        float peru = smoothstep(12.0, 3.0, length(vec2(lng + 81.0, lat + 8.0)));
-        float upwell = max(arabian, peru);
-        t = upwell * 0.8 + (1.0 - depthFactor) * 0.15 + fbm(coord * 5.0) * 0.15;`,
-      pfz: `
-        float coastal3 = 1.0 - smoothstep(0.0, 0.4, depthFactor);
-        float warm = 1.0 - abs(latNorm - 0.45) * 1.8;
-        t = coastal3 * 0.45 + warm * 0.3 + fbm(coord * 6.0) * 0.25;`,
-    }[layerId] ?? `t = fbm(coord * 4.0);`;
-
-    return `
-      varying vec3 vNormal;
-      varying vec3 vPosition;
-      uniform vec3 lightDir;
-      uniform float u_timeOffset;
-
-      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-      float noise(vec2 p){
-        vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);
-        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
-      }
-      float fbm(vec2 p){
-        float v=0.0,a=0.5;
-        for(int i=0;i<5;i++){v+=a*noise(p);p*=2.0;a*=0.5;}
-        return v;
-      }
-
-      vec3 getLayerColor(float t){
-        vec3 colors[${MAX}]; float vals[${MAX}];
-        ${colors.map((c, i) => `colors[${i}]=${c};`).join('')}
-        ${vals.map((v, i) => `vals[${i}]=${v};`).join('')}
-        float minV=vals[0], maxV=vals[${n-1}];
-        float val=mix(minV,maxV,clamp(t,0.0,1.0));
-        if(val<=vals[0]) return colors[0];
-        if(val>=vals[${n-1}]) return colors[${n-1}];
-        for(int i=0;i<${n-1};i++){
-          if(val>=vals[i]&&val<=vals[i+1]){
-            float f=(val-vals[i])/(vals[i+1]-vals[i]);
-            return mix(colors[i],colors[i+1],f);
-          }
-        }
-        return colors[${n-1}];
-      }
-
-      void main(){
-        float lat=asin(clamp(vNormal.y,-1.0,1.0))*57.2958;
-        float lng=atan(vNormal.z,vNormal.x)*57.2958;
-        float latNorm=(lat+90.0)/180.0;
-        vec2 coord=vec2(lng*0.05,lat*0.05);
-
-        // Land mask
-        float land=fbm(coord*3.0+vec2(1.7,2.3))+0.3*fbm(coord*8.0+vec2(5.1,3.7));
-        float thr=0.52;
-        float landBoost=max(max(
-          smoothstep(22.0,5.0,length(vec2(lng-78.0,lat-20.0))),
-          smoothstep(32.0,10.0,length(vec2(lng-20.0,lat-5.0)))),max(max(
-          smoothstep(28.0,8.0,length(vec2(lng-10.0,lat-48.0))),
-          smoothstep(38.0,12.0,length(vec2(lng-100.0,lat-35.0)))),max(
-          smoothstep(32.0,10.0,length(vec2(lng+100.0,lat-40.0))),max(
-          smoothstep(26.0,8.0,length(vec2(lng+60.0,lat+15.0))),
-          smoothstep(22.0,6.0,length(vec2(lng-135.0,lat+25.0)))))));
-        thr-=landBoost*0.16;
-        bool isLand=land>thr;
-
-        vec3 color;
-        if(isLand){
-          float elev=(land-thr)/(1.0-thr);
-          color=mix(vec3(0.078,0.098,0.059),vec3(0.120,0.088,0.050),elev);
-          // Snow caps
-          if(latNorm<0.1||latNorm>0.9) color=mix(color,vec3(0.9,0.95,1.0),smoothstep(0.05,0.0,latNorm-0.9+0.9));
-        } else {
-          float depthFactor=(thr-land)/thr;
-          float oceanNoise=fbm(coord*6.0+vec2(4.2,1.8));
-          float t=0.0;
-          ${oceanCase}
-          t=clamp(t,0.0,1.0);
-          color=getLayerColor(t);
-          color+=vec3(oceanNoise*0.03);
-        }
-
-        float diff=max(dot(vNormal,lightDir),0.0);
-        color*=(0.28+diff*0.72);
-        float rim=pow(1.0-max(dot(vNormal,normalize(cameraPosition-vPosition)),0.0),3.5);
-        color+=vec3(0.1,0.22,0.42)*rim*0.5;
-        gl_FragColor=vec4(color,1.0);
-      }`;
-  }, []);
 
   // ── Three.js init ──────────────────────────────────────────────────
   useEffect(() => {
@@ -659,31 +545,58 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
     rim.position.set(-3, -1, -2);
     scene.add(rim);
 
-    // Globe
-    const vsh = `
-      varying vec3 vNormal;
-      varying vec3 vPosition;
-      varying vec2 vUv;
-      void main(){
-        vNormal=normalize(normalMatrix*normal);
-        vPosition=(modelMatrix*vec4(position,1.0)).xyz;
-        vUv=uv;
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
-      }`;
-    const earthGeom = new THREE.SphereGeometry(EARTH_RADIUS, 128, 64);
-    const earthMat = new THREE.ShaderMaterial({
-      vertexShader: vsh,
-      fragmentShader: buildFragShader('sst'),
-      uniforms: {
-        lightDir: { value: new THREE.Vector3(0.5, 0.3, 0.5).normalize() },
-        cameraPosition: { value: camera.position },
-        u_timeOffset: { value: 0 },
-      },
+    // Blue Marble base globe (rendered first — opaque texture)
+    const textureLoader = new THREE.TextureLoader();
+    const earthTexture = textureLoader.load(
+      '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
+    );
+    const baseGeom = new THREE.SphereGeometry(EARTH_RADIUS, 128, 64);
+    const baseMat = new THREE.MeshPhongMaterial({
+      map: earthTexture,
+      specular: new THREE.Color(0x1a2244),
+      shininess: 10,
     });
-    const globe = new THREE.Mesh(earthGeom, earthMat);
-    scene.add(globe);
-    globeRef.current = globe;
-    globeMaterialRef.current = earthMat;
+    const baseGlobe = new THREE.Mesh(baseGeom, baseMat);
+    scene.add(baseGlobe);
+    baseGlobeRef.current = baseGlobe;
+    globeRef.current = baseGlobe;
+
+    // Per-layer tint overlay (smooth latitude gradient, semi-transparent)
+    const initTint = LAYER_TINTS['sst'];
+    const tintGeom = new THREE.SphereGeometry(EARTH_RADIUS + 0.002, 64, 32);
+    const tintMat = new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec3 vN;
+        void main(){
+          vN=normalize(normalMatrix*normal);
+          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+        }`,
+      fragmentShader: `
+        varying vec3 vN;
+        uniform vec3 u_c0;
+        uniform vec3 u_c1;
+        uniform vec3 u_c2;
+        uniform float u_alpha;
+        uniform float u_bias;
+        void main(){
+          float t=abs(vN.y);
+          t=mix(1.0-t,t,u_bias);
+          vec3 col=t<0.5?mix(u_c0,u_c1,t*2.0):mix(u_c1,u_c2,(t-0.5)*2.0);
+          gl_FragColor=vec4(col,u_alpha);
+        }`,
+      uniforms: {
+        u_c0:    { value: new THREE.Color(initTint.c0[0]/255, initTint.c0[1]/255, initTint.c0[2]/255) },
+        u_c1:    { value: new THREE.Color(initTint.c1[0]/255, initTint.c1[1]/255, initTint.c1[2]/255) },
+        u_c2:    { value: new THREE.Color(initTint.c2[0]/255, initTint.c2[1]/255, initTint.c2[2]/255) },
+        u_alpha: { value: initTint.alpha },
+        u_bias:  { value: initTint.bias },
+      },
+      transparent: true,
+      depthWrite: false,
+    });
+    const tintGlobe = new THREE.Mesh(tintGeom, tintMat);
+    scene.add(tintGlobe);
+    tintMaterialRef.current = tintMat;
 
     // Atmosphere
     const atmGeom = new THREE.SphereGeometry(EARTH_RADIUS * 1.018, 64, 32);
@@ -733,8 +646,10 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
       rotationRef.current.y += (targetRotRef.current.y - rotationRef.current.y) * 0.08;
       zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.08;
 
-      globe.rotation.x = rotationRef.current.x;
-      globe.rotation.y = rotationRef.current.y;
+      baseGlobe.rotation.x = rotationRef.current.x;
+      baseGlobe.rotation.y = rotationRef.current.y;
+      tintGlobe.rotation.x = rotationRef.current.x;
+      tintGlobe.rotation.y = rotationRef.current.y;
       atmosphere.rotation.x = rotationRef.current.x;
       atmosphere.rotation.y = rotationRef.current.y;
       markerGroup.rotation.x = rotationRef.current.x;
@@ -743,7 +658,6 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
       pfzGroup.rotation.y = rotationRef.current.y;
 
       camera.position.z = zoomRef.current;
-      (earthMat.uniforms.cameraPosition as any).value.copy(camera.position);
       (atmMat.uniforms.cameraPos as any).value.copy(camera.position);
 
       // Pulse selected marker glow
@@ -773,24 +687,71 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationRef.current);
       renderer.dispose();
-      earthGeom.dispose(); earthMat.dispose();
+      baseGeom.dispose(); baseMat.dispose();
+      tintGeom.dispose(); tintMat.dispose();
       atmGeom.dispose(); atmMat.dispose();
       starGeom.dispose();
     };
-  }, [buildFragShader]);
+  }, []);
 
-  // ── Shader update on layer change ─────────────────────────────────
-  useEffect(() => {
-    if (!globeMaterialRef.current) return;
-    globeMaterialRef.current.fragmentShader = buildFragShader(activeLayer);
-    globeMaterialRef.current.needsUpdate = true;
-  }, [activeLayer, buildFragShader]);
+  // ── Marker color helper ───────────────────────────────────────────
+  const getMarkerHexColor = useCallback((layerId: OceanLayerId, data: ExtendedLocationData | null): number => {
+    if (!data) return 0x00e8ff;
+    const valueMap: Record<OceanLayerId, number> = {
+      sst:         data.temperature ?? 0,
+      chlorophyll: data.chlorophyll ?? 0,
+      salinity:    data.salinity ?? 0,
+      oxygen:      (data as any).oxygen ?? 0,
+      current:     data.currentSpeed ?? 0,
+      ssh:         (data as any).sshMeters ?? (data.seaLevelAnomaly / 100) ?? 0,
+      ph:          (data as any).ph ?? 0,
+      turbidity:   (data as any).turbidity ?? 0,
+      nitrate:     (data as any).nitrate ?? 0,
+      pfz:         data.chlorophyll ?? 0,
+    };
+    const value = valueMap[layerId] ?? 0;
+    const layer = OCEAN_LAYERS.find(l => l.id === layerId);
+    if (!layer) return 0x00e8ff;
+    const s = layer.colorStops;
+    if (value <= s[0].value) {
+      return (s[0].color[0] << 16) | (s[0].color[1] << 8) | s[0].color[2];
+    }
+    if (value >= s[s.length - 1].value) {
+      const c = s[s.length - 1].color;
+      return (c[0] << 16) | (c[1] << 8) | c[2];
+    }
+    for (let i = 0; i < s.length - 1; i++) {
+      if (value >= s[i].value && value <= s[i + 1].value) {
+        const f = (value - s[i].value) / (s[i + 1].value - s[i].value);
+        const r = Math.round(s[i].color[0] + f * (s[i + 1].color[0] - s[i].color[0]));
+        const g = Math.round(s[i].color[1] + f * (s[i + 1].color[1] - s[i].color[1]));
+        const b = Math.round(s[i].color[2] + f * (s[i + 1].color[2] - s[i].color[2]));
+        return (r << 16) | (g << 8) | b;
+      }
+    }
+    return 0x00e8ff;
+  }, []);
 
-  // ── Update time uniform ───────────────────────────────────────────
+  // ── Re-color selected marker when layer or data changes ───────────
   useEffect(() => {
-    if (!globeMaterialRef.current) return;
-    globeMaterialRef.current.uniforms.u_timeOffset.value = timeOffset;
-  }, [timeOffset]);
+    if (!selectedMarkerRef.current) return;
+    const hex = getMarkerHexColor(activeLayer, locationData);
+    (selectedMarkerRef.current.material as THREE.MeshBasicMaterial).color.setHex(hex);
+    if (selectedGlowRef.current) {
+      (selectedGlowRef.current.material as THREE.MeshBasicMaterial).color.setHex(hex);
+    }
+  }, [activeLayer, locationData, getMarkerHexColor]);
+
+  // ── Tint overlay update on layer switch ──────────────────────────
+  useEffect(() => {
+    if (!tintMaterialRef.current) return;
+    const td = LAYER_TINTS[activeLayer];
+    (tintMaterialRef.current.uniforms.u_c0.value as THREE.Color).setRGB(td.c0[0]/255, td.c0[1]/255, td.c0[2]/255);
+    (tintMaterialRef.current.uniforms.u_c1.value as THREE.Color).setRGB(td.c1[0]/255, td.c1[1]/255, td.c1[2]/255);
+    (tintMaterialRef.current.uniforms.u_c2.value as THREE.Color).setRGB(td.c2[0]/255, td.c2[1]/255, td.c2[2]/255);
+    tintMaterialRef.current.uniforms.u_alpha.value = td.alpha;
+    tintMaterialRef.current.uniforms.u_bias.value = td.bias;
+  }, [activeLayer]);
 
   // ── PFZ visibility ────────────────────────────────────────────────
   useEffect(() => {
@@ -908,16 +869,17 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
         markerGroupRef.current.remove(selectedGlowRef.current);
       }
       const pos = latLngToVector3(lat, lng, MARKER_RADIUS + 0.01);
+      const initColor = getMarkerHexColor(activeLayer, null);
       // Core pin
       const pinGeom = new THREE.SphereGeometry(0.038, 16, 12);
-      const pinMat = new THREE.MeshBasicMaterial({ color: 0x00e8ff });
+      const pinMat = new THREE.MeshBasicMaterial({ color: initColor });
       const pin = new THREE.Mesh(pinGeom, pinMat);
       pin.position.copy(pos);
       markerGroupRef.current.add(pin);
       selectedMarkerRef.current = pin;
       // Glow halo
       const glowGeom = new THREE.SphereGeometry(0.12, 16, 12);
-      const glowMat = new THREE.MeshBasicMaterial({ color: 0x00e8ff, transparent: true, opacity: 0.15 });
+      const glowMat = new THREE.MeshBasicMaterial({ color: initColor, transparent: true, opacity: 0.15 });
       const glow = new THREE.Mesh(glowGeom, glowMat);
       glow.position.copy(pos);
       markerGroupRef.current.add(glow);
@@ -973,7 +935,7 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
         setLocationData(fallback);
         setLocationLoading(false);
       });
-  }, [activeLayer, timeOffset]);
+  }, [activeLayer, timeOffset, getMarkerHexColor]);
 
   const handleAnalyzeLocation = useCallback(async () => {
     if (!selectedPoint || !locationData) return;
@@ -1021,11 +983,17 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
 
   // ── Voice analysis ────────────────────────────────────────────────
   const handleVoiceAnalysis = useCallback(() => {
+    setVoiceActive(true);
     const query = selectedPoint
       ? `Analyze ocean at ${selectedPoint.lat.toFixed(3)}°${selectedPoint.lat >= 0 ? 'N' : 'S'}, ${selectedPoint.lng.toFixed(3)}°${selectedPoint.lng >= 0 ? 'E' : 'W'}. SST: ${locationData?.temperature ?? '?'}°C, Chl-a: ${locationData?.chlorophyll ?? '?'} mg/m³, Waves: ${locationData?.waveHeight ?? '?'}m. Active layer: ${currentLayerDef.label}. Is this good for fishing and is it safe?`
       : `Analyze ocean conditions around India, Bay of Bengal, and Arabian Sea. Current layer: ${currentLayerDef.label}`;
-    onOpenVoiceModal?.(query);
-  }, [selectedPoint, locationData, currentLayerDef, onOpenVoiceModal]);
+    if (onOpenVoiceModal) {
+      onOpenVoiceModal(query);
+    } else {
+      onNavigate?.('ask-orca');
+    }
+    setTimeout(() => setVoiceActive(false), 1500);
+  }, [selectedPoint, locationData, currentLayerDef, onOpenVoiceModal, onNavigate]);
 
   // ── Helpers ───────────────────────────────────────────────────────
   const getLayerValue = () => {
@@ -1221,10 +1189,14 @@ export const GlobalOceanGlobe: React.FC<GlobalOceanGlobeProps> = ({
             <div className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 z-20">
               <button
                 onClick={handleVoiceAnalysis}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/75 backdrop-blur-md border border-teal-500/30 text-teal-300 hover:bg-teal-600/20 hover:border-teal-500/50 transition text-[10px] font-bold shadow-xl"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl backdrop-blur-md border text-[10px] font-bold shadow-xl transition-all duration-200 ${
+                  voiceActive
+                    ? 'bg-teal-600/70 border-teal-400 text-white scale-105 shadow-teal-500/30'
+                    : 'bg-black/75 border-teal-500/30 text-teal-300 hover:bg-teal-600/20 hover:border-teal-500/50'
+                }`}
               >
-                <Mic className="w-3.5 h-3.5" />
-                MATSYA AI Voice Analysis
+                <Mic className={`w-3.5 h-3.5 ${voiceActive ? 'animate-pulse' : ''}`} />
+                {voiceActive ? 'Opening Voice AI...' : 'MATSYA AI Voice Analysis'}
               </button>
             </div>
 
