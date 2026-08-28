@@ -19,6 +19,7 @@ import { authRouter } from './server/routes/auth';
 import { historyRouter, saveAnalysis } from './server/routes/history';
 import { publicRouter } from './server/routes/publicRoutes';
 import { userRouter } from './server/routes/userRoutes';
+import { voiceRouter } from './server/routes/voiceRoutes';
 import { optionalAuth } from './server/middleware/auth';
 
 dotenv.config();
@@ -28,11 +29,12 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT as string, 10) : 3000;
 
 app.use(express.json());
 
-// Auth, History, Public & User routes
+// Auth, History, Public, User & Voice routes
 app.use('/api/auth', authRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/user', userRouter);
+app.use('/api/voice', voiceRouter);
 
 // 0. Database health check (dev-only inspection; never exposes credentials)
 app.get('/api/health/database', async (_req, res) => {

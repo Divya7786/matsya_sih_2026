@@ -32,6 +32,7 @@ interface FishermanViewProps {
 export type FishermanTaskState =
   | 'IDLE'
   | 'LISTENING'
+  | 'FALLBACK_RECORDING'  // MediaRecorder + cloud STT (auto-triggered when browser STT fails)
   | 'PLANNING'
   | 'EXECUTING'
   | 'SYNTHESIZING'
@@ -66,12 +67,16 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   const [voiceSupported, setVoiceSupported] = useState<boolean>(true);
   const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
   const [diagState, setDiagState] = useState({ micPermission: 'unknown', voicesLoaded: 0 });
+  // Tracks which STT path was used: 'browser' | 'cloud' | null
+  const [sttProvider, setSttProvider] = useState<'browser' | 'cloud' | null>(null);
 
   const currentTaskIdRef = useRef<string | null>(null);
   const isExecutingRef = useRef<boolean>(false);
   const watchIdRef = useRef<number | null>(null);
   // Ref tracks the latest voice query so stale-closure callbacks can read it
   const voiceQueryRef = useRef<string>('');
+  // Ref to stop the MediaRecorder fallback when the user taps the mic button again
+  const stopFallbackRef = useRef<(() => void) | null>(null);
 
   // ── GPS + Voice pre-warm on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -261,7 +266,49 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     setTimeout(() => setVoiceError(null), 6000);
   };
 
+  // Start cloud STT fallback via MediaRecorder → /api/voice/transcribe
+  const startFallbackRecording = async (lang: string) => {
+    setVoiceError(null);
+    voiceQueryRef.current = '';
+    setVoiceQuery('');
+    setTaskState('FALLBACK_RECORDING');
+    setSttProvider('cloud');
+    MarineVoiceService.playBeep(440, 120);
+
+    const stopFn = await MarineVoiceService.startRecordingFallback(
+      lang,
+      (transcript) => {
+        voiceQueryRef.current = transcript;
+        setVoiceQuery(transcript);
+        stopFallbackRef.current = null;
+        startFishermanTask(transcript);
+      },
+      (err) => {
+        stopFallbackRef.current = null;
+        const msg = err === 'empty_transcript'
+          ? getVoiceErrorMessage('no_speech', lang)
+          : getVoiceErrorMessage(err, lang);
+        showVoiceError(msg);
+        setTaskState('IDLE');
+        setSttProvider(null);
+      },
+      (state) => {
+        if (state === 'processing') setTaskState('EXECUTING');
+      }
+    );
+    stopFallbackRef.current = stopFn;
+  };
+
   const handleVoiceToggle = () => {
+    // If MediaRecorder fallback is running, stop it to trigger upload
+    if (taskState === 'FALLBACK_RECORDING') {
+      if (stopFallbackRef.current) {
+        stopFallbackRef.current();
+        stopFallbackRef.current = null;
+      }
+      return;
+    }
+
     if (taskState === 'LISTENING') {
       MarineVoiceService.stopListening();
       if (voiceQueryRef.current.trim()) {
@@ -272,9 +319,9 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
       return;
     }
 
-    // Check support before starting
+    // Browser doesn't support Web Speech → go straight to cloud STT
     if (!MarineVoiceService.isSupported()) {
-      showVoiceError(getVoiceErrorMessage('not_supported', selectedLang));
+      startFallbackRecording(selectedLang);
       return;
     }
 
@@ -284,6 +331,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     voiceQueryRef.current = '';
     setVoiceQuery('');
     setTaskState('LISTENING');
+    setSttProvider('browser');
     MarineVoiceService.playBeep(600, 100);
 
     const started = MarineVoiceService.startListening(
@@ -298,9 +346,17 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
       },
       (err) => {
         console.warn('[FishermanView] Recognition error:', err);
+        // Auto-fallback to cloud STT when browser engine can't handle the language
+        if (err === 'not_supported' || err === 'language_not_supported' || err === 'start_failed') {
+          setTaskState('IDLE');
+          setSttProvider(null);
+          startFallbackRecording(selectedLang);
+          return;
+        }
         const msg = getVoiceErrorMessage(err, selectedLang);
         showVoiceError(msg);
         setTaskState('IDLE');
+        setSttProvider(null);
       },
       () => {
         // Recognition ended — if no transcript captured, show "couldn't hear you"
@@ -313,8 +369,10 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     );
 
     if (!started) {
-      showVoiceError(getVoiceErrorMessage('not_supported', selectedLang));
+      // startListening already called onError('not_supported') which triggers fallback above,
+      // but guard here in case the flow changes
       setTaskState('IDLE');
+      setSttProvider(null);
     }
   };
 
@@ -362,6 +420,8 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   const isBusy =
     taskState === 'PLANNING' || taskState === 'EXECUTING' || taskState === 'SYNTHESIZING';
 
+  const recordingFallback = taskState === 'FALLBACK_RECORDING';
+
   const displayPfzZones = livePfzZones.length > 0 ? livePfzZones : MOCK_PFZ_ZONES;
   const nearestPfz = displayPfzZones[0] ?? selectedPFZ;
 
@@ -391,6 +451,10 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     selectedLang === 'hi' ? 'टैप करें और बोलें' :
     selectedLang === 'te' ? 'నొక్కి మాట్లాడండి' :
     selectedLang === 'ml' ? 'ടാപ്പ് ചെയ്ത് സംസാരിക്കൂ' : 'Tap & Speak';
+
+  const recordingFallbackText =
+    selectedLang === 'ta' ? '● பேசுங்கள் · நிறுத்த தட்டவும்' :
+    selectedLang === 'hi' ? '● बोलें · रोकने के लिए टैप करें' : '● Recording · Tap to stop';
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
@@ -679,11 +743,13 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
               </div>
             )}
 
-            {/* Diagnostics panel (dev/demo — toggle with long-press on MATSYA AI label) */}
+            {/* Diagnostics panel */}
             {showDiagnostics && (
               <div className="mb-2 px-3 py-2 rounded-xl bg-[#0c1a2e] border border-white/10 text-[9px] font-mono text-white/60 space-y-0.5">
                 <div className="text-teal-400 font-bold text-[8px] uppercase mb-1">Voice Diagnostics</div>
-                <div>Browser STT: {MarineVoiceService.diagnostics.stdSupport ? '✓ SpeechRecognition' : '—'} {MarineVoiceService.diagnostics.webkitSupport ? '✓ webkitSpeechRecognition' : ''}</div>
+                <div>Browser STT: {MarineVoiceService.diagnostics.stdSupport ? '✓ SpeechRecognition' : '—'} {MarineVoiceService.diagnostics.webkitSupport ? '✓ webkit' : ''}</div>
+                <div>Cloud STT: {sttProvider === 'cloud' ? '✓ active' : '/api/voice/transcribe (on fallback)'}</div>
+                <div>Active provider: {sttProvider ? <span className={sttProvider === 'cloud' ? 'text-amber-300' : 'text-emerald-300'}>{sttProvider.toUpperCase()}</span> : '—'}</div>
                 <div>Microphone: {diagState.micPermission}</div>
                 <div>Voices loaded: {diagState.voicesLoaded}</div>
                 <div>Language: {LANGUAGE_CONFIG[selectedLang]?.label || selectedLang}</div>
@@ -736,15 +802,19 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
             </div>
 
             {/* Voice state indicator */}
-            {(taskState === 'LISTENING' || isBusy || taskState === 'SPEAKING') && (
+            {(taskState === 'LISTENING' || recordingFallback || isBusy || taskState === 'SPEAKING') && (
               <div className={[
                 'text-[10px] font-mono flex items-center gap-1.5 mb-2',
                 taskState === 'LISTENING' ? 'text-rose-400'
+                : recordingFallback ? 'text-amber-400 animate-pulse'
                 : taskState === 'SPEAKING' ? 'text-teal-300'
                 : 'text-teal-400 animate-pulse',
               ].join(' ')}>
                 {taskState === 'LISTENING' && (
                   <><Radio className="w-3 h-3 animate-pulse" />{voiceQuery || listeningText}</>
+                )}
+                {recordingFallback && (
+                  <><Radio className="w-3 h-3 animate-pulse" /> Cloud STT recording… tap to stop</>
                 )}
                 {isBusy && (
                   <><Sparkles className="w-3 h-3 animate-spin" />{thinkingText}</>
@@ -796,6 +866,8 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                   'flex-1 h-14 rounded-2xl flex items-center justify-center gap-2.5 font-bold text-sm transition-all shadow-xl active:scale-95 disabled:opacity-50',
                   taskState === 'LISTENING'
                     ? 'bg-rose-600 ring-4 ring-rose-500/30 animate-pulse'
+                    : recordingFallback
+                    ? 'bg-amber-600 ring-4 ring-amber-500/30 animate-pulse'
                     : taskState === 'SPEAKING'
                     ? 'bg-teal-600 ring-4 ring-teal-500/20'
                     : 'bg-teal-700 hover:bg-teal-600 ring-2 ring-teal-600/20',
@@ -803,6 +875,8 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
               >
                 {taskState === 'LISTENING' ? (
                   <><MicOff className="w-5 h-5 text-white" /><span className="text-white">{listeningText}</span></>
+                ) : recordingFallback ? (
+                  <><Radio className="w-5 h-5 text-white" /><span className="text-white text-[11px]">{recordingFallbackText}</span></>
                 ) : taskState === 'SPEAKING' ? (
                   <><Volume2 className="w-5 h-5 text-white" /><span className="text-white">{speakingText}</span></>
                 ) : (
