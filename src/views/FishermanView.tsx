@@ -268,6 +268,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
 
   // Start cloud STT fallback via MediaRecorder → /api/voice/transcribe
   const startFallbackRecording = async (lang: string) => {
+    console.log('[VOICE DEBUG] startFallbackRecording — lang:', lang);
     setVoiceError(null);
     voiceQueryRef.current = '';
     setVoiceQuery('');
@@ -278,21 +279,29 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     const stopFn = await MarineVoiceService.startRecordingFallback(
       lang,
       (transcript) => {
+        console.log('[VOICE DEBUG] cloud STT transcript received:', JSON.stringify(transcript));
         voiceQueryRef.current = transcript;
         setVoiceQuery(transcript);
         stopFallbackRef.current = null;
         startFishermanTask(transcript);
       },
       (err) => {
+        console.warn('[VOICE DEBUG] cloud STT error:', err);
         stopFallbackRef.current = null;
-        const msg = err === 'empty_transcript'
-          ? getVoiceErrorMessage('no_speech', lang)
-          : getVoiceErrorMessage(err, lang);
+        let msg: string;
+        if (err === 'empty_transcript') {
+          msg = getVoiceErrorMessage('no_speech', lang);
+        } else if (err === 'cloud_stt_not_configured') {
+          msg = 'Cloud speech recognition is not configured. Set GEMINI_API_KEY in .env to enable cloud STT.';
+        } else {
+          msg = getVoiceErrorMessage(err, lang);
+        }
         showVoiceError(msg);
         setTaskState('IDLE');
         setSttProvider(null);
       },
       (state) => {
+        console.log('[VOICE DEBUG] MediaRecorder state change:', state);
         if (state === 'processing') setTaskState('EXECUTING');
       }
     );
@@ -300,8 +309,11 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   };
 
   const handleVoiceToggle = () => {
-    // If MediaRecorder fallback is running, stop it to trigger upload
+    console.log('[VOICE DEBUG] microphone clicked — taskState:', taskState, '| isBusy:', isBusy);
+
+    // If MediaRecorder fallback is running, stop it to trigger upload + cloud STT
     if (taskState === 'FALLBACK_RECORDING') {
+      console.log('[VOICE DEBUG] stopping MediaRecorder fallback — will upload + transcribe');
       if (stopFallbackRef.current) {
         stopFallbackRef.current();
         stopFallbackRef.current = null;
@@ -310,6 +322,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     }
 
     if (taskState === 'LISTENING') {
+      console.log('[VOICE DEBUG] stopping active recognition');
       MarineVoiceService.stopListening();
       if (voiceQueryRef.current.trim()) {
         startFishermanTask(voiceQueryRef.current.trim());
@@ -319,12 +332,14 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
       return;
     }
 
-    // Browser doesn't support Web Speech → go straight to cloud STT
+    // Browser doesn't support Web Speech API → go straight to cloud STT
     if (!MarineVoiceService.isSupported()) {
+      console.log('[VOICE DEBUG] browser STT not supported — starting cloud STT fallback');
       startFallbackRecording(selectedLang);
       return;
     }
 
+    // ── Start browser Web Speech recognition ──────────────────────────────
     MarineVoiceService.stopAll();
     currentTaskIdRef.current = null;
     isExecutingRef.current = false;
@@ -334,19 +349,22 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     setSttProvider('browser');
     MarineVoiceService.playBeep(600, 100);
 
+    console.log('[VOICE DEBUG] permission state:', MarineVoiceService.diagnostics.micPermission);
+
     const started = MarineVoiceService.startListening(
       selectedLang,
       (text, isFinal) => {
         voiceQueryRef.current = text;
         setVoiceQuery(text);
         if (isFinal && text.trim()) {
+          console.log('[VOICE DEBUG] sending transcript to agent:', JSON.stringify(text));
           MarineVoiceService.stopListening();
           startFishermanTask(text.trim());
         }
       },
       (err) => {
-        console.warn('[FishermanView] Recognition error:', err);
-        // Auto-fallback to cloud STT when browser engine can't handle the language
+        console.warn('[VOICE DEBUG] browser STT error in FishermanView:', err);
+        // Auto-fallback: browser engine can't handle this scenario → use cloud STT
         if (err === 'not_supported' || err === 'language_not_supported' || err === 'start_failed') {
           setTaskState('IDLE');
           setSttProvider(null);
@@ -359,8 +377,13 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
         setSttProvider(null);
       },
       () => {
-        // Recognition ended — if no transcript captured, show "couldn't hear you"
-        if (!voiceQueryRef.current.trim()) {
+        // FIX for stale-closure bug:
+        // When the Safari fallback in voice.ts calls onResult(bestTranscript, true),
+        // startFishermanTask() runs and clears voiceQueryRef.current = '' AND sets
+        // isExecutingRef.current = true. So checking isExecutingRef is the correct
+        // way to know whether a task was started — not voiceQueryRef.current.
+        console.log('[VOICE DEBUG] recognition onEnd — isExecuting:', isExecutingRef.current, '| voiceQuery:', JSON.stringify(voiceQueryRef.current));
+        if (!isExecutingRef.current && !voiceQueryRef.current.trim()) {
           const msg = getVoiceErrorMessage('no_speech', selectedLang);
           showVoiceError(msg);
         }
@@ -369,8 +392,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     );
 
     if (!started) {
-      // startListening already called onError('not_supported') which triggers fallback above,
-      // but guard here in case the flow changes
+      // startListening already called onError which handles fallback above
       setTaskState('IDLE');
       setSttProvider(null);
     }
@@ -748,8 +770,9 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
               <div className="mb-2 px-3 py-2 rounded-xl bg-[#0c1a2e] border border-white/10 text-[9px] font-mono text-white/60 space-y-0.5">
                 <div className="text-teal-400 font-bold text-[8px] uppercase mb-1">Voice Diagnostics</div>
                 <div>Browser STT: {MarineVoiceService.diagnostics.stdSupport ? '✓ SpeechRecognition' : '—'} {MarineVoiceService.diagnostics.webkitSupport ? '✓ webkit' : ''}</div>
-                <div>Cloud STT: {sttProvider === 'cloud' ? '✓ active' : '/api/voice/transcribe (on fallback)'}</div>
+                <div>Cloud STT: {sttProvider === 'cloud' ? '✓ active' : '/api/voice/transcribe (auto-triggered on fallback)'}</div>
                 <div>Active provider: {sttProvider ? <span className={sttProvider === 'cloud' ? 'text-amber-300' : 'text-emerald-300'}>{sttProvider.toUpperCase()}</span> : '—'}</div>
+                <div>Last cloud provider: {MarineVoiceService.diagnostics.lastProvider || '—'}</div>
                 <div>Microphone: {diagState.micPermission}</div>
                 <div>Voices loaded: {diagState.voicesLoaded}</div>
                 <div>Language: {LANGUAGE_CONFIG[selectedLang]?.label || selectedLang}</div>
