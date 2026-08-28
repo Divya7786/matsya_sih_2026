@@ -14,13 +14,6 @@ import { globalVectorStore } from './server/db/vectorStore';
 import { TOOL_REGISTRY, getToolsForIntent } from './server/agents/toolRegistry';
 import { fetchMarineLive, fetchSstWithGradient } from './server/data/openMeteoMarineClient';
 import { fetchNceiSst, fetchPifscChlorophyll } from './server/data/incoisErddapClient';
-import { runMigrations, dbHealthCheck, dbGetSafeUsers, useInMemory } from './server/db/postgres';
-import { authRouter } from './server/routes/auth';
-import { historyRouter, saveAnalysis } from './server/routes/history';
-import { publicRouter } from './server/routes/publicRoutes';
-import { userRouter } from './server/routes/userRoutes';
-import { voiceRouter } from './server/routes/voiceRoutes';
-import { optionalAuth } from './server/middleware/auth';
 
 dotenv.config();
 
@@ -28,39 +21,6 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT as string, 10) : 3000;
 
 app.use(express.json());
-
-// Auth, History, Public, User & Voice routes
-app.use('/api/auth', authRouter);
-app.use('/api/history', historyRouter);
-app.use('/api/public', publicRouter);
-app.use('/api/user', userRouter);
-app.use('/api/voice', voiceRouter);
-
-// 0. Database health check (dev-only inspection; never exposes credentials)
-app.get('/api/health/database', async (_req, res) => {
-  const health = await dbHealthCheck();
-  res.json({
-    status: health.connected || health.mode === 'in-memory' ? 'ok' : 'error',
-    database: health.mode,
-    connected: health.connected || health.mode === 'in-memory',
-    mode: health.mode,
-    databaseName: health.databaseName,
-    tables: health.tables,
-    userCount: health.userCount,
-    note: health.mode === 'in-memory'
-      ? 'Running in-memory. Set DATABASE_URL in .env to enable PostgreSQL persistence.'
-      : 'Connected to PostgreSQL.',
-  });
-});
-
-// Dev-only: safe user list (no passwords, no secrets)
-app.get('/api/dev/users', async (_req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(403).json({ error: 'Not available in production' });
-  }
-  const users = await dbGetSafeUsers();
-  res.json({ users, count: users.length, mode: useInMemory() ? 'in-memory' : 'postgresql' });
-});
 
 // 1. Health Endpoint
 app.get('/api/health', (req, res) => {
@@ -198,7 +158,7 @@ app.get('/api/ocean/location', async (req, res) => {
 });
 
 // 3. MASTER MULTI-AGENT ORCHESTRATION ENDPOINT
-app.post('/api/agents/orchestrate', optionalAuth, async (req, res) => {
+app.post('/api/agents/orchestrate', async (req, res) => {
   try {
     const { query, language = 'en', locationContext, memoryContext } = req.body;
     if (!query) {
@@ -206,28 +166,6 @@ app.post('/api/agents/orchestrate', optionalAuth, async (req, res) => {
     }
 
     const result = await globalMultiAgentOrchestrator.orchestrate(query, language, locationContext, memoryContext);
-
-    // Save to history for authenticated users (fire-and-forget)
-    if (req.user) {
-      const waveHeight = result.riskAssessment
-        ? (result.evidence?.find(e => e.dataset.includes('Wave'))?.observation?.match(/Wave\s*([\d.]+)/)?.[1]
-            ? parseFloat(result.evidence.find(e => e.dataset.includes('Wave'))!.observation.match(/Wave\s*([\d.]+)/)![1])
-            : null)
-        : null;
-      saveAnalysis({
-        userId: req.user.id,
-        query,
-        intent: result.detectedIntent,
-        locationName: locationContext?.name ?? null,
-        lat: locationContext?.lat ?? null,
-        lng: locationContext?.lng ?? null,
-        answerSummary: result.answer.slice(0, 500),
-        dataStatus: result.dataFreshness?.pfz ?? 'UNKNOWN',
-        pfzCount: result.pfzRecommendations?.length ?? 0,
-        waveHeight,
-      }).catch(() => {});
-    }
-
     res.json(result);
   } catch (err: any) {
     console.error('Agent Orchestration Error:', err);
@@ -602,9 +540,125 @@ app.get('/api/ocean/live', async (req, res) => {
   }
 });
 
+// 17. NEWS API ENDPOINTS - Proxy for NewsData.io
+app.get('/api/news/local', async (req, res) => {
+  const region = (req.query.region as string) || 'India';
+  const NEWS_API_KEY = process.env.NEWS_API_KEY;
+
+  if (!NEWS_API_KEY) {
+    // Fallback to mock data if API key not configured
+    return res.json({
+      success: true,
+      articles: [],
+      message: 'News API key not configured. Using fallback mode.'
+    });
+  }
+
+  try {
+    // NewsData.io API for local marine/ocean news
+    const keywords = ['ocean', 'marine', 'fishing', 'sea', 'coastal', 'fishermen', 'cyclone', 'storm', 'weather', 'maritime'];
+    const query = keywords.join(' OR ');
+    const country = region.toLowerCase().includes('india') ? 'in' : undefined;
+
+    const url = new URL('https://newsdata.io/api/1/news');
+    url.searchParams.append('apikey', NEWS_API_KEY);
+    url.searchParams.append('q', query);
+    if (country) url.searchParams.append('country', country);
+    url.searchParams.append('language', 'en');
+    url.searchParams.append('size', '20');
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (data.status === 'success' && data.results) {
+      res.json({ success: true, articles: data.results });
+    } else {
+      res.json({ success: false, articles: [], error: data.message });
+    }
+  } catch (error) {
+    console.error('News API error:', error);
+    res.status(500).json({ success: false, articles: [], error: 'Failed to fetch news' });
+  }
+});
+
+app.get('/api/news/global', async (req, res) => {
+  const NEWS_API_KEY = process.env.NEWS_API_KEY;
+
+  if (!NEWS_API_KEY) {
+    return res.json({
+      success: true,
+      articles: [],
+      message: 'News API key not configured. Using fallback mode.'
+    });
+  }
+
+  try {
+    // Global marine/ocean news
+    const keywords = ['ocean', 'marine', 'sea', 'tsunami', 'fishing', 'maritime', 'climate ocean', 'ocean temperature'];
+    const query = keywords.join(' OR ');
+
+    const url = new URL('https://newsdata.io/api/1/news');
+    url.searchParams.append('apikey', NEWS_API_KEY);
+    url.searchParams.append('q', query);
+    url.searchParams.append('language', 'en');
+    url.searchParams.append('size', '30');
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (data.status === 'success' && data.results) {
+      res.json({ success: true, articles: data.results });
+    } else {
+      res.json({ success: false, articles: [], error: data.message });
+    }
+  } catch (error) {
+    console.error('News API error:', error);
+    res.status(500).json({ success: false, articles: [], error: 'Failed to fetch news' });
+  }
+});
+
+app.post('/api/news/summarize', async (req, res) => {
+  const { title, description, region, isLocal } = req.body;
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+  if (!GEMINI_API_KEY) {
+    return res.json({
+      summary: 'This news may affect ocean conditions in your area. Check the full article for details.'
+    });
+  }
+
+  try {
+    const genaiModule = await import('@google/genai');
+    const GoogleGenerativeAI = (genaiModule as any).GoogleGenerativeAI || (genaiModule as any).default;
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = isLocal
+      ? `Summarize this marine/ocean news in 1-2 simple sentences for fishermen in ${region}. Explain what it means for them practically.
+
+Title: ${title}
+Description: ${description}
+
+Write in plain language. Focus on: What does this mean? What should fishermen know?`
+      : `Summarize this global ocean news in 1-2 simple sentences for ordinary people interested in the ocean.
+
+Title: ${title}
+Description: ${description}
+
+Write in plain language. Be clear and practical.`;
+
+    const result = await model.generateContent(prompt);
+    const summary = result.response.text().trim();
+
+    res.json({ summary });
+  } catch (error) {
+    console.error('AI summary error:', error);
+    res.json({ summary: 'Check the full article for more information about how this affects your area.' });
+  }
+});
+
 // Vite Middleware for Dev / Static serving for Prod
 async function startServer() {
-  await runMigrations();
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
