@@ -1,21 +1,33 @@
 import React, { useState } from 'react';
-import { 
-  Compass, 
-  Satellite, 
-  ShieldCheck, 
-  Anchor, 
-  Users, 
-  Mail, 
-  CheckCircle2, 
-  Send, 
-  Award, 
+import {
+  Compass,
+  Satellite,
+  ShieldCheck,
+  Anchor,
+  Users,
+  Mail,
+  CheckCircle2,
+  Send,
+  Award,
   ExternalLink,
   Sparkles,
   Layers,
   Activity,
   Globe,
-  Waves
+  Waves,
+  GraduationCap,
+  Target,
+  Code2,
 } from 'lucide-react';
+
+const TEAM_MEMBERS = [
+  { name: 'M DIVYA DHARSHINI' },
+  { name: 'ISHANNI' },
+  { name: 'JANANI BN' },
+  { name: 'JANANI N' },
+  { name: 'GLADYN RHEANNA A' },
+  { name: 'JAYASHREE R' },
+] as const;
 
 interface AboutViewProps {
   onNavigate: (view: string) => void;
@@ -193,6 +205,151 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate, onOpenVoiceMod
             </div>
           </div>
         </section>
+
+        {/* ═══ MEET THE TEAM ═══════════════════════════════════════════════════ */}
+        <section className="space-y-10 pt-6 border-t border-[#E5E5E5]">
+
+          {/* Section label + heading */}
+          <div className="space-y-1">
+            <p className="text-xs font-mono font-bold uppercase text-teal-700 tracking-widest">
+              The People Behind the Platform
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#111111]">
+              Meet the Team Behind MATSYA AI
+            </h2>
+            <p className="text-sm text-[#555555] max-w-2xl leading-relaxed pt-1">
+              Computer Science students building intelligent technology for safer seas, smarter fishing, and data-driven marine decisions.
+            </p>
+          </div>
+
+          {/* Desktop: description left + photo right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+            {/* Left — description + mini stats */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
+                    <GraduationCap className="w-4 h-4 text-teal-700" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-[#111111]">MATSYA AI Development Team</p>
+                    <p className="text-xs text-[#555555] leading-relaxed mt-0.5">
+                      Department of Computer Science
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                    <Code2 className="w-4 h-4 text-indigo-700" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-[#111111]">Full-Stack Marine Intelligence</p>
+                    <p className="text-xs text-[#555555] leading-relaxed mt-0.5">
+                      AI · Machine Learning · Geospatial · Voice · Real-Time Satellite Data
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                    <Target className="w-4 h-4 text-emerald-700" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-[#111111]">Smart India Hackathon 2024</p>
+                    <p className="text-xs text-[#555555] leading-relaxed mt-0.5">
+                      Problem Statement 26176 — Marine Intelligence Platform
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mission card */}
+              <div className="p-5 rounded-xl bg-[#111111] text-white space-y-2">
+                <p className="text-[10px] font-mono uppercase font-bold text-teal-400 tracking-widest">
+                  Our Mission
+                </p>
+                <p className="text-sm leading-relaxed text-neutral-200">
+                  "To transform complex marine and satellite data into simple, actionable intelligence that helps people make safer and smarter decisions at sea."
+                </p>
+              </div>
+
+              {/* SIH badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-50 border border-teal-100">
+                <Anchor className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                <span className="text-[11px] font-mono font-bold text-teal-800 tracking-wide">
+                  Built for SIH · MATSYA AI · Marine Intelligence Platform
+                </span>
+              </div>
+            </div>
+
+            {/* Right — team photo */}
+            <div className="relative">
+              <div className="rounded-2xl overflow-hidden border border-[#E5E5E5] shadow-lg bg-[#F7F7F5]">
+                <img
+                  src="/team-photo.jpg"
+                  alt="MATSYA AI Development Team"
+                  className="w-full h-auto object-cover object-center"
+                  style={{ maxHeight: '420px', objectFit: 'cover', objectPosition: 'center top' }}
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.style.display = 'none';
+                    const placeholder = target.nextElementSibling as HTMLElement | null;
+                    if (placeholder) placeholder.style.display = 'flex';
+                  }}
+                />
+                {/* Placeholder shown only if image fails to load */}
+                <div
+                  className="hidden w-full h-64 flex-col items-center justify-center gap-3 text-[#999999]"
+                  aria-hidden="true"
+                >
+                  <Users className="w-10 h-10 opacity-30" />
+                  <p className="text-xs font-mono text-[#aaaaaa]">
+                    Place <code className="bg-[#EEEEEE] px-1 rounded">team-photo.jpg</code> in the <code className="bg-[#EEEEEE] px-1 rounded">public/</code> folder
+                  </p>
+                </div>
+              </div>
+              {/* Caption */}
+              <p className="mt-2 text-center text-[10px] font-mono text-[#999999] tracking-wide">
+                MATSYA AI Development Team · Computer Science Department
+              </p>
+            </div>
+          </div>
+
+          {/* ── Six member cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {TEAM_MEMBERS.map((member) => (
+              <div
+                key={member.name}
+                className="flex items-center gap-3 p-4 rounded-xl border border-[#E5E5E5] bg-white shadow-xs hover:shadow-md hover:border-teal-200 transition-all duration-200"
+              >
+                {/* Avatar initial circle */}
+                <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center shrink-0 text-white font-bold text-sm select-none">
+                  {member.name.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#111111] leading-tight truncate">
+                    {member.name}
+                  </p>
+                  <p className="text-[11px] text-[#777777] mt-0.5">Computer Science Student</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Team statement ── */}
+          <div className="p-6 rounded-2xl bg-[#F7F7F5] border border-[#E5E5E5] text-center space-y-2">
+            <p className="text-xs font-mono font-bold uppercase text-teal-700 tracking-widest">
+              About This Project
+            </p>
+            <p className="text-sm text-[#444444] leading-relaxed max-w-3xl mx-auto">
+              Built by a team of Computer Science students combining AI, machine learning, geospatial intelligence, real-time satellite data, voice interaction and marine technology to create practical solutions for fishermen, researchers and coastal communities.
+            </p>
+          </div>
+
+        </section>
+        {/* ════════════════════════════════════════════════════════════════════ */}
 
         {/* 5. CONTACT & COLLABORATION FORM */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 border-t border-[#E5E5E5]">
