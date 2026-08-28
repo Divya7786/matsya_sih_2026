@@ -2,6 +2,28 @@
 // Safari-safe: uses stop() not abort(), tracks bestTranscript for isFinal=false fallback,
 // adds 80ms delay between cancel() and speak(), and provides a MediaRecorder+Gemini fallback.
 
+// ── Centralized language configuration ───────────────────────────────────────
+export interface LangConfig {
+  label: string;
+  nativeName: string;
+  stt: string;  // BCP-47 for SpeechRecognition
+  tts: string;  // BCP-47 for SpeechSynthesis
+}
+
+export const LANGUAGE_CONFIG: Record<string, LangConfig> = {
+  en: { label: 'English',    nativeName: 'English',    stt: 'en-IN', tts: 'en-IN' },
+  ta: { label: 'Tamil',      nativeName: 'தமிழ்',      stt: 'ta-IN', tts: 'ta-IN' },
+  hi: { label: 'Hindi',      nativeName: 'हिन्दी',     stt: 'hi-IN', tts: 'hi-IN' },
+  te: { label: 'Telugu',     nativeName: 'తెలుగు',     stt: 'te-IN', tts: 'te-IN' },
+  ml: { label: 'Malayalam',  nativeName: 'മലയാളം',     stt: 'ml-IN', tts: 'ml-IN' },
+  kn: { label: 'Kannada',    nativeName: 'ಕನ್ನಡ',      stt: 'kn-IN', tts: 'kn-IN' },
+  bn: { label: 'Bengali',    nativeName: 'বাংলা',      stt: 'bn-IN', tts: 'bn-IN' },
+  mr: { label: 'Marathi',    nativeName: 'मराठी',      stt: 'mr-IN', tts: 'mr-IN' },
+  gu: { label: 'Gujarati',   nativeName: 'ગુજરાતી',    stt: 'gu-IN', tts: 'gu-IN' },
+  pa: { label: 'Punjabi',    nativeName: 'ਪੰਜਾਬੀ',     stt: 'pa-IN', tts: 'pa-IN' },
+  or: { label: 'Odia',       nativeName: 'ଓଡ଼ିଆ',      stt: 'or-IN', tts: 'or-IN' },
+};
+
 export class MarineVoiceService {
   private static recognition: any = null;
   private static isListeningState = false;
@@ -11,17 +33,43 @@ export class MarineVoiceService {
   private static mediaStream: MediaStream | null = null;
   private static mediaRecorder: MediaRecorder | null = null;
 
-  static readonly LANG_MAP: Record<string, string> = {
-    ta: 'ta-IN', hi: 'hi-IN', te: 'te-IN', ml: 'ml-IN',
-    kn: 'kn-IN', bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN',
-    pa: 'pa-IN', or: 'or-IN', en: 'en-IN',
+  // Kept for backwards compatibility — use LANGUAGE_CONFIG.*.stt going forward
+  static readonly LANG_MAP: Record<string, string> = Object.fromEntries(
+    Object.entries(LANGUAGE_CONFIG).map(([k, v]) => [k, v.stt])
+  );
+
+  // ── Diagnostics ───────────────────────────────────────────────────────────
+
+  static readonly diagnostics = {
+    browserSupport: false,
+    webkitSupport: false,
+    stdSupport: false,
+    micPermission: 'unknown' as 'unknown' | 'granted' | 'denied',
+    voicesLoaded: 0,
+    lastSttCode: '',
+    lastTtsCode: '',
+    lastSelectedVoice: '',
+    lastError: '',
+    lastTranscript: '',
   };
+
+  static log(level: 'info' | 'warn' | 'error', tag: string, ...args: any[]) {
+    const prefix = `[VOICE] ${tag}`;
+    if (level === 'error') console.error(prefix, ...args);
+    else if (level === 'warn') console.warn(prefix, ...args);
+    else console.log(prefix, ...args);
+  }
 
   // ── Capability checks ──────────────────────────────────────────────────────
 
   static isSupported(): boolean {
     if (typeof window === 'undefined') return false;
-    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    const std = !!(window as any).SpeechRecognition;
+    const wk = !!(window as any).webkitSpeechRecognition;
+    this.diagnostics.stdSupport = std;
+    this.diagnostics.webkitSupport = wk;
+    this.diagnostics.browserSupport = std || wk;
+    return std || wk;
   }
 
   static isListening(): boolean { return this.isListeningState; }
@@ -31,13 +79,16 @@ export class MarineVoiceService {
   // ── Pre-warm microphone (call on component mount, before first listen) ─────
 
   static async requestMicPermission(): Promise<boolean> {
+    this.log('info', 'Microphone permission requested');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.mediaStream = stream;
-      console.log('[VOICE] Microphone permission granted');
+      this.diagnostics.micPermission = 'granted';
+      this.log('info', 'Microphone permission: GRANTED');
       return true;
     } catch (err: any) {
-      console.warn('[VOICE] Microphone permission denied:', err?.message);
+      this.diagnostics.micPermission = 'denied';
+      this.log('warn', `Microphone permission: DENIED — ${err?.message}`);
       return false;
     }
   }
@@ -47,28 +98,36 @@ export class MarineVoiceService {
   static async preloadVoices(): Promise<void> {
     if (!this.synth) return;
     const voices = this.synth.getVoices();
-    if (voices.length > 0) { this.cachedVoices = voices; return; }
+    if (voices.length > 0) {
+      this.cachedVoices = voices;
+      this.diagnostics.voicesLoaded = voices.length;
+      this.log('info', `Voices already available: ${voices.length}`);
+      return;
+    }
 
     await new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, 2000);
+      const timer = setTimeout(resolve, 2500);
       if (typeof this.synth!.onvoiceschanged !== 'undefined') {
         this.synth!.onvoiceschanged = () => {
           clearTimeout(timer);
           this.cachedVoices = this.synth!.getVoices();
+          this.diagnostics.voicesLoaded = this.cachedVoices.length;
           resolve();
         };
       } else {
         let tries = 0;
         const poll = setInterval(() => {
           const v = this.synth!.getVoices();
-          if (v.length > 0 || ++tries > 20) {
+          if (v.length > 0 || ++tries > 25) {
             clearInterval(poll); clearTimeout(timer);
-            this.cachedVoices = v; resolve();
+            this.cachedVoices = v;
+            this.diagnostics.voicesLoaded = v.length;
+            resolve();
           }
         }, 100);
       }
     });
-    console.log(`[VOICE] Preloaded ${this.cachedVoices.length} TTS voices`);
+    this.log('info', `Preloaded ${this.cachedVoices.length} TTS voices`);
   }
 
   // ── Speech Recognition ────────────────────────────────────────────────────
@@ -83,7 +142,8 @@ export class MarineVoiceService {
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn('[VOICE] webkitSpeechRecognition not available');
+      this.log('warn', 'webkitSpeechRecognition / SpeechRecognition not available in this browser');
+      this.diagnostics.lastError = 'not_supported';
       onError('not_supported');
       return false;
     }
@@ -95,8 +155,10 @@ export class MarineVoiceService {
       this.recognition = null;
     }
 
-    const locale = this.LANG_MAP[languageCode] || 'en-IN';
-    console.log(`[VOICE] Starting recognition — lang=${locale}`);
+    const langCfg = LANGUAGE_CONFIG[languageCode];
+    const locale = langCfg ? langCfg.stt : (this.LANG_MAP[languageCode] || 'en-IN');
+    this.diagnostics.lastSttCode = locale;
+    this.log('info', `Starting recognition — lang=${locale} (code=${languageCode})`);
 
     try {
       const rec = new SpeechRecognition();
@@ -124,18 +186,20 @@ export class MarineVoiceService {
         if (final.trim()) {
           bestTranscript = final.trim();
           finalFired = true;
-          console.log(`[VOICE] Final: "${bestTranscript}"`);
+          this.diagnostics.lastTranscript = bestTranscript;
+          this.log('info', `Final transcript: "${bestTranscript}"`);
           onResult(bestTranscript, true);
         } else if (interim.trim()) {
           bestTranscript = interim.trim();
-          console.log(`[VOICE] Interim: "${interim.trim()}"`);
+          this.log('info', `Interim transcript: "${interim.trim()}"`);
           onResult(interim.trim(), false);
         }
       };
 
       rec.onerror = (event: any) => {
         const code: string = event.error || 'unknown';
-        console.warn('[VOICE] Recognition error:', code);
+        this.diagnostics.lastError = code;
+        this.log('warn', `Recognition error: ${code}`);
         this.isListeningState = false;
         const friendly: Record<string, string> = {
           'not-allowed': 'microphone_denied',
@@ -144,15 +208,17 @@ export class MarineVoiceService {
           'network': 'network_error',
           'aborted': 'aborted',
           'audio-capture': 'mic_unavailable',
+          'language-not-supported': 'language_not_supported',
         };
         onError(friendly[code] || code);
       };
 
       rec.onend = () => {
-        console.log(`[VOICE] onend — finalFired=${finalFired}, best="${bestTranscript}"`);
+        this.log('info', `onend — finalFired=${finalFired}, best="${bestTranscript}"`);
         // Safari fallback: submit best interim as final if no isFinal=true ever fired
         if (!finalFired && bestTranscript.trim()) {
-          console.log('[VOICE] Safari fallback: submitting best interim as final');
+          this.log('info', `Safari fallback: submitting best interim "${bestTranscript}" as final`);
+          this.diagnostics.lastTranscript = bestTranscript;
           onResult(bestTranscript.trim(), true);
         }
         this.isListeningState = false;
@@ -162,11 +228,12 @@ export class MarineVoiceService {
 
       rec.start();
       this.isListeningState = true;
-      console.log('[VOICE] Recognition started');
+      this.log('info', 'Recognition started — listening');
       return true;
 
     } catch (e: any) {
-      console.error('[VOICE] Failed to start recognition:', e?.message);
+      this.log('error', `Failed to start recognition: ${e?.message}`);
+      this.diagnostics.lastError = e?.message || 'start_failed';
       this.isListeningState = false;
       this.recognition = null;
       onError('start_failed');
@@ -180,7 +247,6 @@ export class MarineVoiceService {
         // Use stop() not abort() — stop() allows final results through before onend fires.
         // abort() fires onend synchronously and drops pending transcripts on Safari.
         this.recognition.stop();
-        // Don't null recognition here — onend handler cleans up after final results arrive
       } catch {}
     }
     this.isListeningState = false;
@@ -196,6 +262,7 @@ export class MarineVoiceService {
     onError: (err: string) => void,
     onStateChange: (state: 'recording' | 'processing' | 'done') => void
   ): Promise<() => void> {
+    const locale = LANGUAGE_CONFIG[languageCode]?.stt || 'en-IN';
     try {
       const stream = this.mediaStream || await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -220,7 +287,7 @@ export class MarineVoiceService {
             const res = await fetch('/api/voice/transcribe', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ audioBase64: base64, mimeType: blob.type, languageCode: this.LANG_MAP[languageCode] || 'en-IN' }),
+              body: JSON.stringify({ audioBase64: base64, mimeType: blob.type, languageCode: locale }),
             });
             if (res.ok) {
               const { transcript } = await res.json();
@@ -240,7 +307,7 @@ export class MarineVoiceService {
 
       recorder.start();
       onStateChange('recording');
-      console.log('[VOICE] MediaRecorder started (Gemini fallback)');
+      this.log('info', 'MediaRecorder started (fallback)');
 
       return () => {
         if (recorder.state === 'recording') recorder.stop();
@@ -248,7 +315,7 @@ export class MarineVoiceService {
       };
     } catch (err: any) {
       const code = err?.name === 'NotAllowedError' ? 'microphone_denied' : 'mic_unavailable';
-      console.warn('[VOICE] MediaRecorder start failed:', err?.message);
+      this.log('warn', `MediaRecorder start failed: ${err?.message}`);
       onError(code);
       onStateChange('done');
       return () => {};
@@ -275,6 +342,36 @@ export class MarineVoiceService {
       .trim();
   }
 
+  // Select the best available TTS voice for the given BCP-47 locale.
+  // Strategy: exact match → language-prefix match → en-IN → first available.
+  private static selectVoice(locale: string): SpeechSynthesisVoice | null {
+    const voices = this.cachedVoices.length > 0 ? this.cachedVoices : (this.synth?.getVoices() ?? []);
+    if (!voices.length) return null;
+
+    const norm = (s: string) => s.replace('_', '-').toLowerCase();
+    const locLower = norm(locale);
+    const langPrefix = locLower.split('-')[0];
+
+    // 1. Exact locale match (e.g., ta-IN)
+    let match = voices.find(v => norm(v.lang) === locLower);
+    if (match) return match;
+
+    // 2. Same language, any region (e.g., ta-SG when ta-IN unavailable)
+    match = voices.find(v => norm(v.lang).startsWith(langPrefix + '-'));
+    if (match) return match;
+
+    // 3. en-IN fallback for non-Latin scripts where browser has no native voice
+    //    (better than a random Latin-script voice that will mispronounce)
+    if (langPrefix !== 'en') {
+      match = voices.find(v => norm(v.lang) === 'en-in') ||
+               voices.find(v => norm(v.lang).startsWith('en-'));
+      if (match) return match;
+    }
+
+    // 4. Any voice as last resort
+    return voices[0] ?? null;
+  }
+
   static speak(
     text: string,
     languageCode: string = 'en',
@@ -292,8 +389,10 @@ export class MarineVoiceService {
     const cleanedText = this.cleanTextForSpeech(text);
     if (!cleanedText) { if (onComplete) onComplete(); return false; }
 
-    const locale = this.LANG_MAP[languageCode] || 'en-IN';
-    console.log(`[VOICE] Speaking — lang=${locale}, chars=${cleanedText.length}`);
+    const langCfg = LANGUAGE_CONFIG[languageCode];
+    const locale = langCfg ? langCfg.tts : (this.LANG_MAP[languageCode] || 'en-IN');
+    this.diagnostics.lastTtsCode = locale;
+    this.log('info', `Speaking — lang=${locale} (code=${languageCode}), chars=${cleanedText.length}`);
 
     // Safari bug: calling speak() immediately after cancel() may silently fail.
     // A short delay (80ms) ensures the synthesis queue is flushed before enqueuing.
@@ -306,15 +405,14 @@ export class MarineVoiceService {
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
 
-        // Pick a matching voice using cached list (avoids empty-array on first call)
-        const voices = this.cachedVoices.length > 0 ? this.cachedVoices : this.synth!.getVoices();
-        const match = voices.find(v => {
-          const vl = v.lang.replace('_', '-');
-          return vl === locale || vl.startsWith(locale.split('-')[0] + '-');
-        });
-        if (match) {
-          utterance.voice = match;
-          console.log(`[VOICE] Using voice: ${match.name} (${match.lang})`);
+        const voice = this.selectVoice(locale);
+        if (voice) {
+          utterance.voice = voice;
+          this.diagnostics.lastSelectedVoice = `${voice.name} (${voice.lang})`;
+          this.log('info', `TTS voice selected: ${voice.name} (${voice.lang})`);
+        } else {
+          this.diagnostics.lastSelectedVoice = 'browser default';
+          this.log('info', 'TTS voice: browser default');
         }
 
         let done = false;
@@ -322,13 +420,15 @@ export class MarineVoiceService {
           if (!done) {
             done = true;
             this.activeUtterance = null;
+            this.log('info', 'TTS completed');
             if (onComplete) onComplete();
           }
         };
 
         utterance.onend = finish;
         utterance.onerror = (e) => {
-          console.warn('[VOICE] TTS onerror:', e.error);
+          this.log('warn', `TTS onerror: ${e.error}`);
+          this.diagnostics.lastError = `TTS:${e.error}`;
           finish();
         };
 
@@ -339,8 +439,8 @@ export class MarineVoiceService {
         const maxMs = Math.max(8000, wordCount * 650);
         setTimeout(() => { if (!done && !this.synth!.speaking) finish(); }, maxMs);
 
-      } catch (e) {
-        console.error('[VOICE] TTS error:', e);
+      } catch (e: any) {
+        this.log('error', `TTS error: ${e?.message}`);
         if (onComplete) onComplete();
       }
     }, 80);

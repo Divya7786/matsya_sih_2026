@@ -19,7 +19,7 @@ import {
 import { PFZZone, RoutePlan, AgentOrchestrationResult } from '../types/marine';
 import { MOCK_PFZ_ZONES, MOCK_SAMPLE_ROUTES, SUPPORTED_LANGUAGES } from '../data/mockMarineData';
 import { MarineLeafletMap } from '../components/MarineLeafletMap';
-import { MarineVoiceService } from '../services/voice';
+import { MarineVoiceService, LANGUAGE_CONFIG } from '../services/voice';
 import { runAgentOrchestration } from '../services/api';
 import { GeoPosition, requestPosition, getFallbackPosition, formatLocationName } from '../services/geolocation';
 import { NavigationPanel } from '../components/NavigationPanel';
@@ -61,11 +61,19 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   const [nameInput, setNameInput] = useState('');
   const [showNameEntry, setShowNameEntry] = useState<boolean>(() => !localStorage.getItem('matsya_name'));
 
+  // Voice error + diagnostics state
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [voiceSupported, setVoiceSupported] = useState<boolean>(true);
+  const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
+  const [diagState, setDiagState] = useState({ micPermission: 'unknown', voicesLoaded: 0 });
+
   const currentTaskIdRef = useRef<string | null>(null);
   const isExecutingRef = useRef<boolean>(false);
   const watchIdRef = useRef<number | null>(null);
+  // Ref tracks the latest voice query so stale-closure callbacks can read it
+  const voiceQueryRef = useRef<string>('');
 
-  // ── GPS: initial fix + continuous watchPosition ────────────────────────────
+  // ── GPS + Voice pre-warm on mount ─────────────────────────────────────────
   useEffect(() => {
     requestPosition().then(setGeoPos);
 
@@ -86,6 +94,23 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
       );
     }
+
+    // Check voice support immediately
+    const supported = MarineVoiceService.isSupported();
+    setVoiceSupported(supported);
+    if (!supported) {
+      console.warn('[VOICE] SpeechRecognition not available in this browser');
+    }
+
+    // Pre-warm microphone so Safari doesn't pop a permission dialog mid-sentence
+    MarineVoiceService.requestMicPermission().then((ok) => {
+      setDiagState(prev => ({ ...prev, micPermission: ok ? 'granted' : 'denied' }));
+    });
+
+    // Pre-load TTS voices so they're ready before first use
+    MarineVoiceService.preloadVoices().then(() => {
+      setDiagState(prev => ({ ...prev, voicesLoaded: MarineVoiceService.diagnostics.voicesLoaded }));
+    });
 
     return () => {
       if (watchIdRef.current !== null && navigator.geolocation) {
@@ -133,13 +158,20 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
   // ── All original handlers ──────────────────────────────────────────────────
   const startFishermanTask = async (queryText: string) => {
     const cleanQuery = queryText.trim();
-    if (!cleanQuery || isExecutingRef.current) return;
+    if (!cleanQuery) {
+      console.warn('[VOICE] Empty transcript — agent call skipped');
+      return;
+    }
+    if (isExecutingRef.current) return;
 
     const newTaskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     currentTaskIdRef.current = newTaskId;
     isExecutingRef.current = true;
 
+    // Reset voice query ref when a new task begins
+    voiceQueryRef.current = '';
     MarineVoiceService.stopAll();
+    console.log('[VOICE] Sending transcript to agent:', cleanQuery);
 
     try {
       setTaskState('PLANNING');
@@ -161,6 +193,7 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
       if (currentTaskIdRef.current !== newTaskId) return;
 
       setTaskState('SYNTHESIZING');
+      console.log('[VOICE] Agent response received:', result.answer?.slice(0, 80) + '...');
       setLastAnswer(result.answer);
       setIsMapLoading(false);
 
@@ -194,41 +227,94 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
     }
   };
 
+  // Friendly error messages per error code and language
+  const getVoiceErrorMessage = (err: string, lang: string): string => {
+    const isTamil = lang === 'ta';
+    const isHindi = lang === 'hi';
+    if (err === 'microphone_denied') {
+      if (isTamil) return 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது. Safari அமைவுகள் → Websites → Microphone இல் அனுமதி வழங்கவும்.';
+      if (isHindi) return 'माइक्रोफोन की अनुमति नहीं है। Safari सेटिंग्स → Websites → Microphone में अनुमति दें।';
+      return 'Microphone access denied. In Safari: Settings → Websites → Microphone → Allow for localhost.';
+    }
+    if (err === 'not_supported') {
+      return 'Voice recognition is not supported in this browser. Please use Safari 14.1+ or Chrome/Edge.';
+    }
+    if (err === 'no_speech') {
+      if (isTamil) return 'பேச்சு எதுவும் கேட்கவில்லை. மீண்டும் முயற்சிக்கவும்.';
+      if (isHindi) return 'कोई आवाज़ नहीं सुनाई दी। कृपया फिर से प्रयास करें।';
+      return 'No speech detected. Please tap and speak clearly.';
+    }
+    if (err === 'network_error') {
+      return 'Network error during speech recognition. Check your internet connection.';
+    }
+    if (err === 'mic_unavailable') {
+      return 'Microphone not available. Please check your hardware.';
+    }
+    if (err === 'language_not_supported') {
+      return `Language "${LANGUAGE_CONFIG[lang]?.label || lang}" may not be supported by this browser's speech engine.`;
+    }
+    return `Voice recognition error (${err}). Please try again.`;
+  };
+
+  const showVoiceError = (msg: string) => {
+    setVoiceError(msg);
+    setTimeout(() => setVoiceError(null), 6000);
+  };
+
   const handleVoiceToggle = () => {
     if (taskState === 'LISTENING') {
       MarineVoiceService.stopListening();
-      if (voiceQuery.trim()) {
-        startFishermanTask(voiceQuery);
+      if (voiceQueryRef.current.trim()) {
+        startFishermanTask(voiceQueryRef.current.trim());
       } else {
         setTaskState('IDLE');
       }
-    } else {
-      MarineVoiceService.stopAll();
-      currentTaskIdRef.current = null;
-      isExecutingRef.current = false;
-      setVoiceQuery('');
-      setTaskState('LISTENING');
-      MarineVoiceService.playBeep(600, 100);
+      return;
+    }
 
-      const started = MarineVoiceService.startListening(
-        selectedLang,
-        (text, isFinal) => {
-          setVoiceQuery(text);
-          if (isFinal && text.trim()) {
-            MarineVoiceService.stopListening();
-            startFishermanTask(text.trim());
-          }
-        },
-        (err) => {
-          console.warn('[FishermanView] Recognition error:', err);
-          setTaskState('IDLE');
-        },
-        () => {
-          setTaskState((prev) => (prev === 'LISTENING' ? 'IDLE' : prev));
+    // Check support before starting
+    if (!MarineVoiceService.isSupported()) {
+      showVoiceError(getVoiceErrorMessage('not_supported', selectedLang));
+      return;
+    }
+
+    MarineVoiceService.stopAll();
+    currentTaskIdRef.current = null;
+    isExecutingRef.current = false;
+    voiceQueryRef.current = '';
+    setVoiceQuery('');
+    setTaskState('LISTENING');
+    MarineVoiceService.playBeep(600, 100);
+
+    const started = MarineVoiceService.startListening(
+      selectedLang,
+      (text, isFinal) => {
+        voiceQueryRef.current = text;
+        setVoiceQuery(text);
+        if (isFinal && text.trim()) {
+          MarineVoiceService.stopListening();
+          startFishermanTask(text.trim());
         }
-      );
+      },
+      (err) => {
+        console.warn('[FishermanView] Recognition error:', err);
+        const msg = getVoiceErrorMessage(err, selectedLang);
+        showVoiceError(msg);
+        setTaskState('IDLE');
+      },
+      () => {
+        // Recognition ended — if no transcript captured, show "couldn't hear you"
+        if (!voiceQueryRef.current.trim()) {
+          const msg = getVoiceErrorMessage('no_speech', selectedLang);
+          showVoiceError(msg);
+        }
+        setTaskState((prev) => (prev === 'LISTENING' ? 'IDLE' : prev));
+      }
+    );
 
-      if (!started) setTaskState('IDLE');
+    if (!started) {
+      showVoiceError(getVoiceErrorMessage('not_supported', selectedLang));
+      setTaskState('IDLE');
     }
   };
 
@@ -403,6 +489,9 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                   setSelectedLang(lang.code);
                   MarineVoiceService.stopAll();
                   setTaskState('IDLE');
+                  voiceQueryRef.current = '';
+                  setVoiceQuery('');
+                  setVoiceError(null);
                 }}
                 className={[
                   'px-1.5 py-0.5 rounded text-[7.5px] font-bold transition disabled:opacity-40',
@@ -414,6 +503,14 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
                 {lang.nativeName.slice(0, 3)}
               </button>
             ))}
+            {/* Diagnostics toggle */}
+            <button
+              onClick={() => setShowDiagnostics(v => !v)}
+              className="ml-1 w-4 h-4 rounded text-[7px] font-bold text-white/20 hover:text-white/60 transition"
+              title="Voice diagnostics"
+            >
+              ⚙
+            </button>
           </div>
         </div>
 
@@ -566,6 +663,39 @@ export const FishermanView: React.FC<FishermanViewProps> = ({ onOpenGlobalExplor
         {/* ── BOTTOM AI COPILOT ─────────────────────────────────────────────── */}
         {!isNavigating && (
           <div className="flex-none shrink-0 bg-[#06101e] border-t border-white/8 px-4 pt-3 pb-safe-area-inset-bottom pb-4">
+
+            {/* Voice error banner */}
+            {voiceError && (
+              <div className="mb-2 px-3 py-2 rounded-xl bg-rose-900/40 border border-rose-500/30 text-rose-300 text-[10px] leading-snug flex items-start gap-2">
+                <span className="mt-0.5 shrink-0">⚠</span>
+                <span>{voiceError}</span>
+              </div>
+            )}
+
+            {/* Browser unsupported banner */}
+            {!voiceSupported && (
+              <div className="mb-2 px-3 py-2 rounded-xl bg-amber-900/30 border border-amber-500/30 text-amber-300 text-[10px] leading-snug">
+                ⚠ Voice recognition is not supported in this browser. Use Safari 14.1+ or Chrome/Edge.
+              </div>
+            )}
+
+            {/* Diagnostics panel (dev/demo — toggle with long-press on MATSYA AI label) */}
+            {showDiagnostics && (
+              <div className="mb-2 px-3 py-2 rounded-xl bg-[#0c1a2e] border border-white/10 text-[9px] font-mono text-white/60 space-y-0.5">
+                <div className="text-teal-400 font-bold text-[8px] uppercase mb-1">Voice Diagnostics</div>
+                <div>Browser STT: {MarineVoiceService.diagnostics.stdSupport ? '✓ SpeechRecognition' : '—'} {MarineVoiceService.diagnostics.webkitSupport ? '✓ webkitSpeechRecognition' : ''}</div>
+                <div>Microphone: {diagState.micPermission}</div>
+                <div>Voices loaded: {diagState.voicesLoaded}</div>
+                <div>Language: {LANGUAGE_CONFIG[selectedLang]?.label || selectedLang}</div>
+                <div>STT code: {LANGUAGE_CONFIG[selectedLang]?.stt || selectedLang}</div>
+                <div>TTS code: {LANGUAGE_CONFIG[selectedLang]?.tts || selectedLang}</div>
+                <div>Selected voice: {MarineVoiceService.diagnostics.lastSelectedVoice || '—'}</div>
+                <div>Last transcript: {MarineVoiceService.diagnostics.lastTranscript || '—'}</div>
+                <div>Last error: {MarineVoiceService.diagnostics.lastError || '—'}</div>
+                <div>Task state: {taskState}</div>
+                <button onClick={() => setShowDiagnostics(false)} className="text-[8px] text-white/30 mt-1 hover:text-white/60">Close</button>
+              </div>
+            )}
 
             {/* AI response area */}
             <div className="flex items-start gap-2 mb-2.5">
